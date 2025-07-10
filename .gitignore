@@ -1,0 +1,40 @@
+# 💻 Node (frontend)
+node_modules/
+dist/
+.env.local
+.env.development
+.env.production
+
+# 🐍 Python (backend)
+pythonenv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# 🛠 IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# 🚀 OS-specific
+.DS_Store
+Thumbs.db
+
+# 📦 Environment variables
+.env
+
+# 🔥 Log files
+*.log
+
+# 🗂️ Coverage / test
+.coverage
+coverage/
+*.cover
+*.py,cover
+
+# 💾 Backup files
+*.bak
+*.tmp
