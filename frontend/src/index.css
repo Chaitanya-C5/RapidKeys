@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -117,4 +119,39 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.custom-font {
+  font-family: 'Roboto Mono', monospace;
+}
+
+.custom-color {
+  color: #22ce8f;
+}
+
+.hover-custom:hover .line {
+  background-color: #22ce8f; 
+}
+
+.hover-custom:hover .text {
+  color: #22ce8f;
+}
+
+.scroll-hover:hover .scroll-item {
+  color: #22ce8f; 
+}
+
+.custom-underline {
+  text-decoration: underline;
+  text-decoration-color: #22ce8f;
+}
+
+.custom-bgcolor {
+  background-color: #22ce8f;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
