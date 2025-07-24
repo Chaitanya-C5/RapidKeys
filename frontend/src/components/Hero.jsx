@@ -20,7 +20,7 @@ function Hero() {
       </div>
 
       <div className="mt-6 sm:mt-10">
-        <Button className="custom-bgcolor text-white font-bold text-[1rem] sm:text-[1.05rem] w-[12rem] sm:w-[15rem] h-[2.75rem] sm:h-[3rem] flex items-center justify-center gap-2">
+        <Button className="cursor-pointer custom-bgcolor text-white font-bold text-[1rem] sm:text-[1.05rem] w-[12rem] sm:w-[15rem] h-[2.75rem] sm:h-[3rem] flex items-center justify-center gap-2">
           Start Typing Now <MoveRight className="text-white w-4 h-4" />
         </Button>
       </div>
