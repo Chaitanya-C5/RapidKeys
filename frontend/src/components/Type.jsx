@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { Hourglass, TypeOutline } from "lucide-react"
+import { Hourglass, TypeOutline, RotateCcw } from "lucide-react"
 import { COMMON_WORDS } from "../lib/utils"
 
 function Type() {
@@ -16,12 +16,20 @@ function Type() {
   const [typedHistory, setTypedHistory] = useState([]) 
   const inputRef = useRef(null)
 
+  // Display state for 4-line view
+  const [displayStartIndex, setDisplayStartIndex] = useState(0)
+  const wordsPerLine = 12 // Approximate words per line
+  const totalDisplayWords = wordsPerLine * 4 // 4 lines
+
   // Stats tracking
   const [startTime, setStartTime] = useState(null)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [correctCharCount, setCorrectCharCount] = useState(0)
   const [incorrectCharCount, setIncorrectCharCount] = useState(0)
   const [testCompleted, setTestCompleted] = useState(false)
+
+  // Ref to track if this is initial word generation or appending
+  const isAppendingWords = useRef(false)
 
   // Helper to get random words
   const getRandomWords = (count) => {
@@ -32,49 +40,66 @@ function Type() {
     return arr
   }
 
-  // Regenerate words when mode or option changes
-  useEffect(() => {
+  // Generate initial words when component mounts or mode/settings change
+  const generateInitialWords = () => {
+    isAppendingWords.current = false
     if (mode === "words") {
       setWords(getRandomWords(wordCount))
     } else {
-      // For time mode, generate a longer sequence (e.g., 50 words)
-      setWords(getRandomWords(50))
+      // For time mode, generate a longer sequence
+      setWords(getRandomWords(100))
     }
-  }, [mode, wordCount, timeCount])
+  }
 
-  // Start timer on first input
-  useEffect(() => {
-    let timer
-    if (startTime !== null && currentWordIndex < words.length) {
-      timer = setInterval(() => {
-        setElapsedTime((Date.now() - startTime) / 1000)
-      }, 100)
-    }
-    return () => clearInterval(timer)
-  }, [startTime, currentWordIndex, words.length])
-
-  // Reset stats and completion when words regenerate
-  useEffect(() => {
+  // Reset all state for a fresh test
+  const resetTest = () => {
     setStartTime(null)
     setElapsedTime(0)
     setCorrectCharCount(0)
     setIncorrectCharCount(0)
     setTestCompleted(false)
-  }, [words])
+    setCurrentWordIndex(0)
+    setTypedHistory([])
+    setInputValue("")
+    setDisplayStartIndex(0)
+  }
 
-  // Timer for time mode
+  // Regenerate words when mode or option changes
   useEffect(() => {
-    if (mode !== "time") return
-    if (testCompleted || startTime === null) return
-    if (elapsedTime >= timeCount) {
-      setTestCompleted(true)
-      return
+    generateInitialWords()
+    resetTest() // Always reset state when mode changes
+  }, [mode, wordCount, timeCount])
+
+  // Consolidated timer logic for both modes
+  useEffect(() => {
+    let timer
+    if (startTime !== null && !testCompleted) {
+      const shouldContinue = mode === "words" 
+        ? currentWordIndex < words.length 
+        : elapsedTime < timeCount
+      
+      if (shouldContinue) {
+        timer = setInterval(() => {
+          const newElapsedTime = (Date.now() - startTime) / 1000
+          setElapsedTime(newElapsedTime)
+          
+          // Check if time is up in time mode
+          if (mode === "time" && newElapsedTime >= timeCount) {
+            setTestCompleted(true)
+          }
+        }, 100)
+      }
     }
-    const timer = setInterval(() => {
-      setElapsedTime((Date.now() - startTime) / 1000)
-    }, 100)
     return () => clearInterval(timer)
-  }, [mode, startTime, elapsedTime, testCompleted, timeCount])
+  }, [startTime, currentWordIndex, mode, timeCount, testCompleted])
+
+  // Reset stats and completion when words regenerate (but not when appending)
+  useEffect(() => {
+    // Only reset if this is not an append operation
+    if (!isAppendingWords.current) {
+      resetTest()
+    }
+  }, [words])
 
   // When time is up in time mode, freeze stats and input
   useEffect(() => {
@@ -85,122 +110,212 @@ function Type() {
 
   // Keep supplying words in time mode
   useEffect(() => {
-    if (mode === "time" && words.length - currentWordIndex < 10) {
-      setWords((prev) => [...prev, ...getRandomWords(20)])
+    if (mode === "time" && words.length - currentWordIndex < 20) {
+      isAppendingWords.current = true
+      setWords((prev) => [...prev, ...getRandomWords(50)])
     }
   }, [mode, words, currentWordIndex])
+
+  // Update display window when user progresses
+  useEffect(() => {
+    const currentDisplayEnd = displayStartIndex + totalDisplayWords
+    if (currentWordIndex >= currentDisplayEnd - wordsPerLine) {
+      setDisplayStartIndex(prev => prev + wordsPerLine)
+    }
+  }, [currentWordIndex, displayStartIndex, totalDisplayWords, wordsPerLine])
 
   // Focus hidden input on mount and when words change
   useEffect(() => {
     if (inputRef.current) inputRef.current.focus()
   }, [words])
 
-  // Helper to finish the word and move to next (accepts value)
-  const finishWord = (value) => {
-    if (startTime === null) setStartTime(Date.now())
-    const currentWord = words[currentWordIndex] || ""
-    let correct = 0, incorrect = 0
-    for (let i = 0; i < value.length; i++) {
-      if (value[i] === currentWord[i]) correct++
-      else incorrect++
-    }
-    incorrect += Math.abs(currentWord.length - value.length)
-    setCorrectCharCount((c) => c + correct)
-    setIncorrectCharCount((c) => c + incorrect)
-    setTypedHistory((h) => [...h, value])
-    setCurrentWordIndex((idx) => {
-      const nextIdx = idx + 1
-      if (nextIdx >= words.length) setTestCompleted(true)
-      return nextIdx
-    })
-    setInputValue("")
-  }
-  // In time mode, timer starts on first keystroke
-  const handleInput = (e) => {
-    if (testCompleted || (mode === "time" && elapsedTime >= timeCount)) return
-    const currentWord = words[currentWordIndex] || ""
-    const buffer = 2
-    const maxLength = currentWord.length + buffer
-    if (e.key === " ") {
-      finishWord(inputValue)
-      e.preventDefault()
-    } else if (e.key === "Backspace") {
-      setInputValue((v) => v.slice(0, -1))
-      e.preventDefault()
-    } else if (
-      e.key.length === 1 &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey &&
-      inputValue.length < maxLength
-    ) {
-      if (startTime === null) setStartTime(Date.now())
-      const newVal = inputValue + e.key
-      // In words mode, auto-finish on last word; in time mode, just keep going
-      if (
-        mode === "words" &&
-        currentWordIndex === words.length - 1 &&
-        newVal.length >= currentWord.length
-      ) {
-        finishWord(newVal.slice(0, maxLength))
-        setTestCompleted(true)
-        e.preventDefault()
-        return
+  // Calculate accuracy for a word
+  const calculateWordAccuracy = (typedWord, actualWord) => {
+    let correct = 0
+    let incorrect = 0
+    
+    // Count character matches
+    const minLength = Math.min(typedWord.length, actualWord.length)
+    for (let i = 0; i < minLength; i++) {
+      if (typedWord[i] === actualWord[i]) {
+        correct++
+      } else {
+        incorrect++
       }
-      setInputValue(newVal)
-      e.preventDefault()
-    } else if (
-      e.key.length === 1 &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey &&
-      inputValue.length >= maxLength
-    ) {
-      e.preventDefault()
+    }
+    
+    // Count missing or extra characters as incorrect
+    incorrect += Math.abs(typedWord.length - actualWord.length)
+    
+    return { correct, incorrect }
+  }
+
+  // Helper function to check if a word was typed correctly
+  const isWordCorrect = (typedWord, actualWord) => {
+    return typedWord === actualWord
+  }
+
+  // Go back to previous word (only if it has errors)
+  const goToPreviousWord = () => {
+    if (currentWordIndex > 0) {
+      const prevWordIndex = currentWordIndex - 1
+      const prevTypedWord = typedHistory[prevWordIndex] || ""
+      const prevActualWord = words[prevWordIndex] || ""
+      
+      // Only allow going back if the previous word has errors
+      if (!isWordCorrect(prevTypedWord, prevActualWord)) {
+        setCurrentWordIndex(prevWordIndex)
+        setInputValue(prevTypedWord)
+        // Remove the word from history so it can be retyped
+        setTypedHistory(prev => prev.slice(0, prevWordIndex))
+        
+        // Recalculate stats by removing the previous word's contribution
+        const { correct, incorrect } = calculateWordAccuracy(prevTypedWord, prevActualWord)
+        setCorrectCharCount(prev => prev - correct)
+        setIncorrectCharCount(prev => prev - incorrect)
+      }
     }
   }
 
-  // Render per-letter highlighting for the current word (Monkeytype style, improved)
-  const renderWord = (word, idx) => {
-    // Completed words
-    if (idx < currentWordIndex) {
-      const typed = typedHistory[idx] || ""
-      const hasMistake =
-        typed.length !== word.length ||
-        word.split("").some((char, i) => typed[i] !== char)
+  // Finish current word and move to next
+  const finishWord = () => {
+    if (startTime === null) setStartTime(Date.now())
+    
+    const currentWord = words[currentWordIndex] || ""
+    const typedWord = inputValue.trim()
+    
+    // Calculate accuracy
+    const { correct, incorrect } = calculateWordAccuracy(typedWord, currentWord)
+    
+    // Update stats
+    setCorrectCharCount(prev => prev + correct)
+    setIncorrectCharCount(prev => prev + incorrect)
+    
+    // Save typed word to history
+    setTypedHistory(prev => [...prev, typedWord])
+    
+    // Move to next word
+    setCurrentWordIndex(prev => {
+      const nextIdx = prev + 1
+      // Check if test should complete
+      if (mode === "words" && nextIdx >= words.length) {
+        setTestCompleted(true)
+      }
+      return nextIdx
+    })
+    
+    // Clear input
+    setInputValue("")
+  }
+
+  // Handle keyboard input
+  const handleInput = (e) => {
+    // Prevent input if test is completed or time is up
+    if (testCompleted || (mode === "time" && elapsedTime >= timeCount)) {
+      e.preventDefault()
+      return
+    }
+
+    if (e.key === " ") {
+      e.preventDefault()
+      // Monkeytype behavior: only advance if there's actual content typed
+      if (inputValue.length > 0) {
+        finishWord()
+      }
+      // If no content, space does nothing (prevents multiple spaces)
+    } else if (e.key === "Backspace") {
+      e.preventDefault()
+      if (inputValue.length > 0) {
+        // Normal backspace within current word
+        setInputValue(prev => prev.slice(0, -1))
+      } else {
+        // At start of current word, try to go to previous word (only if it has errors)
+        goToPreviousWord()
+      }
+    } else if (
+      e.key.length === 1 &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey
+    ) {
+      e.preventDefault()
+      
+      // Start timer on first keystroke
+      if (startTime === null) setStartTime(Date.now())
+      
+      const currentWord = words[currentWordIndex] || ""
+      const newValue = inputValue + e.key
+      
+      // Allow typing with reasonable buffer for extra characters
+      if (newValue.length <= currentWord.length + 10) {
+        setInputValue(newValue)
+        
+        // Auto-complete last word in words mode when typed correctly
+        if (
+          mode === "words" &&
+          currentWordIndex === words.length - 1 &&
+          newValue === currentWord
+        ) {
+          // Complete the test immediately without setTimeout to prevent race condition
+          if (startTime === null) setStartTime(Date.now())
+          
+          const { correct, incorrect } = calculateWordAccuracy(newValue, currentWord)
+          setCorrectCharCount(prev => prev + correct)
+          setIncorrectCharCount(prev => prev + incorrect)
+          setTypedHistory(prev => [...prev, newValue])
+          setCurrentWordIndex(prev => prev + 1)
+          setInputValue("")
+          setTestCompleted(true)
+        }
+      }
+    }
+  }
+
+  // Helper function to get words for current display window
+  const getDisplayWords = () => {
+    return words.slice(displayStartIndex, displayStartIndex + totalDisplayWords)
+  }
+
+  // Modified renderWord function to work with display indices
+  const renderWord = (word, displayIdx) => {
+    const actualIdx = displayStartIndex + displayIdx
+    
+    if (actualIdx < currentWordIndex) {
+      // Already typed words
+      const typedWord = typedHistory[actualIdx] || ""
+      const hasError = !isWordCorrect(typedWord, word)
+      
       return (
-        <span
-          key={idx}
-          className={`select-none ${hasMistake ? "text-red-500 border-b-2 border-red-500" : "text-white"}`}
-          style={hasMistake ? { textDecoration: "none", textDecorationSkipInk: "none" } : {}}
-        >
+        <span key={actualIdx} className={`select-none ${hasError ? "text-red-400" : "text-gray-300"}`}>
           {word.split("").map((char, i) => {
-            if (typed[i] === undefined) return <span key={i}>{char}</span>
-            if (typed[i] === char) return <span key={i}>{char}</span>
-            // Wrong char
+            let className = ""
+            if (i < typedWord.length) {
+              className = typedWord[i] === char ? "text-gray-300" : "text-red-400"
+            } else {
+              className = hasError ? "text-red-400" : "text-gray-300"
+            }
             return (
-              <span key={i} className="text-red-500">{char}</span>
+              <span key={i} className={className}>
+                {char}
+              </span>
             )
           })}
-          {/* Extra letters */}
-          {typed.length > word.length &&
-            typed.slice(word.length).split("").map((char, i) => (
-              <span
-                key={word.length + i}
-                className="text-red-500"
-              >
+          {/* Show extra characters if any */}
+          {typedWord.length > word.length &&
+            typedWord.slice(word.length).split("").map((char, i) => (
+              <span key={word.length + i} className="text-red-400 bg-red-900/30">
                 {char}
               </span>
             ))}
         </span>
       )
     }
-    // Current word
-    if (idx === currentWordIndex) {
-      // Caret position: at the start if nothing typed, else after last typed char
+    
+    if (actualIdx === currentWordIndex) {
+      // Current word being typed
       const caretPos = inputValue.length
       return (
-        <span key={idx} className="relative select-none text-white">
+        <span key={actualIdx} className="relative select-none text-white">
           {/* Caret at start if nothing typed */}
           {caretPos === 0 && (
             <span className="inline-block w-0.5 h-6 bg-white animate-pulse align-middle mr-0.5" />
@@ -208,7 +323,7 @@ function Type() {
           {word.split("").map((char, i) => {
             let className = ""
             if (i < inputValue.length) {
-              className = inputValue[i] === char ? "text-white" : "text-red-500"
+              className = inputValue[i] === char ? "text-white" : "text-red-400 bg-red-900/30"
             } else {
               className = "text-gray-500"
             }
@@ -227,7 +342,7 @@ function Type() {
             inputValue.slice(word.length).split("").map((char, i) => (
               <span
                 key={word.length + i}
-                className="text-red-500"
+                className="text-red-400 bg-red-900/30"
               >
                 {char}
                 {/* Caret after last extra char */}
@@ -239,9 +354,10 @@ function Type() {
         </span>
       )
     }
+    
     // Untyped/upcoming words
     return (
-      <span key={idx} className="text-gray-600 opacity-60 select-none">
+      <span key={actualIdx} className="text-gray-600 opacity-60 select-none">
         {word}
       </span>
     )
@@ -303,14 +419,23 @@ function Type() {
         </div>
       </div>
 
-      {/* Typing section: display words inline with highlighting */}
+      {/* Typing section: display only current 4 lines */}
       <div
-        className="w-full max-w-4xl mt-8 px-4 py-6 rounded shadow flex flex-wrap gap-x-4 gap-y-4 text-lg sm:text-xl justify-center cursor-text"
+        className="w-full max-w-4xl mt-8 px-4 py-6 rounded shadow text-lg sm:text-xl cursor-text"
         tabIndex={0}
         onClick={() => inputRef.current && inputRef.current.focus()}
       >
-        {words.map((word, idx) => renderWord(word, idx))}
+        {/* Render words in 4 lines */}
+        {Array.from({ length: 4 }, (_, lineIndex) => (
+          <div key={lineIndex} className="flex flex-wrap gap-x-4 gap-y-2 mb-4 justify-center min-h-[2rem]">
+            {getDisplayWords()
+              .slice(lineIndex * wordsPerLine, (lineIndex + 1) * wordsPerLine)
+              .map((word, wordIndex) => renderWord(word, lineIndex * wordsPerLine + wordIndex))
+            }
+          </div>
+        ))}
       </div>
+      
       {/* Hidden input for capturing typing */}
       <input
         ref={inputRef}
@@ -331,10 +456,22 @@ function Type() {
         <span>Accuracy: {accuracy}%</span>
       </div>
 
-      {/* This is graph will be visible */}
-      <div>
-
-      </div>
+      {/* Test completion message */}
+      {testCompleted && (
+        <div className="mt-6 text-center">
+          <div className="text-lg custom-color mb-3">Test Completed</div>
+          <button
+            onClick={() => {
+              resetTest()
+              generateInitialWords()
+            }}
+            className="px-4 py-2 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 transition-colors flex items-center gap-2 mx-auto"
+          >
+            <RotateCcw size={16} />
+            Restart
+          </button>
+        </div>
+      )}
     </div>
   )
 }
