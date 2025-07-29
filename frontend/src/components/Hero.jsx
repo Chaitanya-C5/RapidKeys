@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { MoveRight, ChevronDown } from "lucide-react"
+import { useNavigate } from 'react-router-dom'
 
 function Hero() {
+  const navigate = useNavigate()
   
   return (
     <div className="flex flex-col items-center justify-center bg-black w-full text-gray-300 font-mono p-4 gap-6 ">
@@ -20,7 +22,8 @@ function Hero() {
       </div>
 
       <div className="mt-6 sm:mt-10">
-        <Button className="cursor-pointer custom-bgcolor text-white font-bold text-[1rem] sm:text-[1.05rem] w-[12rem] sm:w-[15rem] h-[2.75rem] sm:h-[3rem] flex items-center justify-center gap-2">
+        <Button className="cursor-pointer custom-bgcolor text-white font-bold text-[1rem] sm:text-[1.05rem] w-[12rem] sm:w-[15rem] h-[2.75rem] sm:h-[3rem] flex items-center justify-center gap-2"
+          onClick={() => navigate('/type')}>
           Start Typing Now <MoveRight className="text-white w-4 h-4" />
         </Button>
       </div>
