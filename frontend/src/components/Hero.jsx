@@ -28,12 +28,11 @@ function Hero() {
         </Button>
       </div>
 
-      <div className="scroll-hover mt-8 flex flex-col items-center animate-bounce">
-        <ChevronDown className="text-zinc-500 w-6 h-6 cursor-pointer scroll-item" 
-          onClick={() => {
-            document.getElementById("why-section")?.scrollIntoView({ behavior: "smooth" })
-          }}
-        />
+      <div className="scroll-hover mt-8 flex flex-col items-center animate-bounce cursor-pointer"
+        onClick={() => {
+          document.getElementById("why-section")?.scrollIntoView({ behavior: "smooth" })
+        }}>
+        <ChevronDown className="text-zinc-500 w-6 h-6 scroll-item" />
         <p className="scroll-item text-xs text-zinc-500 mt-1">Scroll</p>
       </div>
     </div>

@@ -106,6 +106,41 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const googleLogin = async (googleToken) => {
+    try {
+      // Send Google token to backend for verification and user creation/login
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: googleToken }),
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Store auth data
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('userData', JSON.stringify(data.user))
+        
+        setUser(data.user)
+        setIsAuthenticated(true)
+        
+        return { 
+          success: true, 
+          user: data.user, 
+          isNewUser: data.isNewUser // Backend tells us if account was just created
+        }
+      } else {
+        return { success: false, error: data.message || 'Google login failed' }
+      }
+    } catch (error) {
+      console.error('Google login error:', error)
+      return { success: false, error: 'Network error. Please try again.' }
+    }
+  }
+
   const logout = () => {
     // Clear auth data
     localStorage.removeItem('authToken')
@@ -121,6 +156,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     signup,
+    googleLogin,
     logout
   }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
-import { Hourglass, TypeOutline, RotateCcw } from "lucide-react"
+import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombined } from "lucide-react"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { COMMON_WORDS } from "../lib/utils"
 
 function Type() {
@@ -69,6 +70,40 @@ function Type() {
     generateInitialWords()
     resetTest() // Always reset state when mode changes
   }, [mode, wordCount, timeCount])
+
+  // Timer effect for elapsed time and chart updates
+  useEffect(() => {
+    let interval = null
+    if (startTime && !testCompleted) {
+      interval = setInterval(() => {
+        const now = Date.now()
+        const elapsed = (now - startTime) / 1000
+        setElapsedTime(elapsed)
+        
+        // Update chart data every second after 2 seconds
+        if (elapsed >= 2) {
+          const minutes = elapsed / 60
+          const currentWPM = minutes > 0 ? Math.round((correctCharCount / 5) / minutes) : 0
+          
+          setChartData(prev => {
+            const timePoint = Math.floor(elapsed)
+            
+            // Only add new data points, don't update existing ones
+            const existingIndex = prev.findIndex(point => point.time === timePoint)
+            if (existingIndex === -1 && currentWPM > 0) {
+              return [...prev, { time: timePoint, wpm: currentWPM }]
+            }
+            
+            return prev
+          })
+        }
+      }, 1000) // Update every second
+    } else {
+      clearInterval(interval)
+    }
+    
+    return () => clearInterval(interval)
+  }, [startTime, testCompleted, correctCharCount])
 
   // Consolidated timer logic for both modes
   useEffect(() => {
@@ -369,10 +404,30 @@ function Type() {
   const minutes = elapsedTime / 60
   const wpm = minutes > 0 ? Math.round((correctCharCount / 5) / minutes) : 0
 
+  // Real-time WPM chart data
+  const [chartData, setChartData] = useState([])
+  const stats = [
+    {
+      icon: <Activity className="w-8 h-8 text-blue-500 ml-4" />,
+      title: "WPM",
+      value: wpm,
+    },
+    {
+      icon: <Target className="w-8 h-8 text-green-500 ml-4" />,
+      title: "ACCURACY",
+      value: accuracy,
+    },
+    {
+      icon: <Hourglass className="w-8 h-8 text-purple-500 ml-4" />,
+      title: "TIME",
+      value: elapsedTime.toFixed(0),
+    }
+  ]
+
   return (
     <div className="w-full flex flex-col items-center">
       {/* Header options: time/words */}
-      <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-4">
+      <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-2">
         <div className="flex gap-4 sm:gap-8">
           <button
             className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "time" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
@@ -419,22 +474,24 @@ function Type() {
         </div>
       </div>
 
-      {/* Typing section: display only current 4 lines */}
-      <div
-        className="w-full max-w-4xl mt-8 px-4 py-6 rounded shadow text-lg sm:text-xl cursor-text"
-        tabIndex={0}
-        onClick={() => inputRef.current && inputRef.current.focus()}
-      >
-        {/* Render words in 4 lines */}
-        {Array.from({ length: 4 }, (_, lineIndex) => (
-          <div key={lineIndex} className="flex flex-wrap gap-x-4 gap-y-2 mb-4 justify-center min-h-[2rem]">
-            {getDisplayWords()
-              .slice(lineIndex * wordsPerLine, (lineIndex + 1) * wordsPerLine)
-              .map((word, wordIndex) => renderWord(word, lineIndex * wordsPerLine + wordIndex))
-            }
-          </div>
-        ))}
-      </div>
+      {/* Typing section: display only current 4 lines - hide when test completed */}
+      {!testCompleted && (
+        <div
+          className="w-full max-w-4xl mt-8 px-4 py-6 rounded shadow text-lg sm:text-xl cursor-text"
+          tabIndex={0}
+          onClick={() => inputRef.current && inputRef.current.focus()}
+        >
+          {/* Render words in 4 lines */}
+          {Array.from({ length: 4 }, (_, lineIndex) => (
+            <div key={lineIndex} className="flex flex-wrap gap-x-4 gap-y-2 mb-4 justify-center min-h-[2rem]">
+              {getDisplayWords()
+                .slice(lineIndex * wordsPerLine, (lineIndex + 1) * wordsPerLine)
+                .map((word, wordIndex) => renderWord(word, lineIndex * wordsPerLine + wordIndex))
+              }
+            </div>
+          ))}
+        </div>
+      )}
       
       {/* Hidden input for capturing typing */}
       <input
@@ -449,27 +506,99 @@ function Type() {
         onChange={() => {}}
       />
 
-      {/* Stats */}
-      <div className="mt-4 flex gap-8 text-gray-400 text-md">
-        <span>Time: {elapsedTime.toFixed(1)}s</span>
-        <span>WPM: {wpm}</span>
-        <span>Accuracy: {accuracy}%</span>
-      </div>
-
-      {/* Test completion message */}
+      {/* Test completion results screen */}
       {testCompleted && (
-        <div className="mt-6 text-center">
-          <div className="text-lg custom-color mb-3">Test Completed</div>
-          <button
-            onClick={() => {
-              resetTest()
-              generateInitialWords()
-            }}
-            className="px-4 py-2 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 transition-colors flex items-center gap-2 mx-auto"
-          >
-            <RotateCcw size={16} />
-            Restart
-          </button>
+        <div className="mt-8 w-full max-w-4xl">
+          {/* Main Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {
+            stats.map((stat, index) => (
+              <div key={index} className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-8'>
+                {stat.icon}
+                <div className="flex flex-col items-center justify-center">
+                  <div className="mb-1">
+                    <span className="text-gray-400 text-md uppercase tracking-wide">{stat.title}</span>
+                  </div>
+                  <div className="text-3xl font-bold text-white">{stat.value}</div>
+                </div>
+              </div>
+            ))
+          }
+          </div>
+
+          {/* Performance Analysis Chart */}
+          <div className="bg-[#101010] rounded-lg p-6 border border-gray-900">
+            <div className="flex items-center gap-2 mb-4">
+              <ChartNoAxesCombined className="w-8 h-8 text-yellow-500" />
+              <h3 className="text-lg font-semibold text-white">Performance Analysis</h3>
+            </div>
+            
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.3} />
+                  <XAxis 
+                    dataKey="time" 
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tickLine={{ stroke: '#6B7280' }}
+                    axisLine={{ stroke: '#6B7280' }}
+                  />
+                  <YAxis 
+                    stroke="#9CA3AF"
+                    fontSize={12}
+                    tickLine={{ stroke: '#6B7280' }}
+                    axisLine={{ stroke: '#6B7280' }}
+                    domain={['dataMin - 5', 'dataMax + 5']}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#111827', 
+                      border: '1px solid #374151', 
+                      borderRadius: '8px',
+                      color: '#F9FAFB',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    }}
+                    labelStyle={{ color: '#9CA3AF' }}
+                    formatter={(value) => [`${value} WPM`, 'Speed']}
+                    labelFormatter={(label) => `Time: ${label}s`}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="wpm" 
+                    stroke="#10B981" 
+                    strokeWidth={3}
+                    dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
+                    activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Type Again Button */}
+          <div className="text-center mt-4 flex justify-center">
+            <button
+              onClick={() => {
+                resetTest()
+                generateInitialWords()
+              }}
+              className="cursor-pointer px-8 py-2 custom-bgcolor text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex gap-2"
+            >
+              <RotateCcw className="mt-1 w-5 h-5 text-white" />
+              Type Again
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Regular stats during typing (only show when test is not completed) */}
+      {!testCompleted && (
+        <div className="flex gap-8 text-gray-400 text-md">
+          <span>Time: {elapsedTime.toFixed(1)}s</span>
+          <span>WPM: {wpm}</span>
+          <span>Accuracy: {accuracy}%</span>
         </div>
       )}
     </div>
