@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombined } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { COMMON_WORDS } from "../lib/utils"
 
 function Type() {
@@ -27,7 +27,7 @@ function Type() {
   const [elapsedTime, setElapsedTime] = useState(0)
   const [correctCharCount, setCorrectCharCount] = useState(0)
   const [incorrectCharCount, setIncorrectCharCount] = useState(0)
-  const [testCompleted, setTestCompleted] = useState(false)
+  const [testCompleted, setTestCompleted] = useState(false) 
 
   // Ref to track if this is initial word generation or appending
   const isAppendingWords = useRef(false)
@@ -398,7 +398,7 @@ function Type() {
   return (
     <div className="w-full flex flex-col items-center">
       {/* Header options: time/words */}
-      <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mt-2">
+      <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mb-8">
         <div className="flex gap-4 sm:gap-8">
           <button
             className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "time" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
@@ -479,88 +479,101 @@ function Type() {
 
       {/* Test completion results screen */}
       {testCompleted && (
-        <div className="mt-8 w-full max-w-4xl">
-          {/* Main Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {
-            stats.map((stat, index) => (
-              <div key={index} className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-8'>
-                {stat.icon}
-                <div className="flex flex-col items-center justify-center">
-                  <div className="mb-1">
-                    <span className="text-gray-400 text-md uppercase tracking-wide">{stat.title}</span>
-                  </div>
-                  <div className="text-3xl font-bold text-white">{stat.value}</div>
-                </div>
+        <div className="mt-8 w-full max-w-4xl ">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Performance Analysis Chart */}
+            <div className="flex-1 bg-[#101010] rounded-lg p-6 border border-gray-900">
+              <div className="flex items-center gap-2 mb-4">
+                <ChartNoAxesCombined className="w-8 h-8 text-yellow-500" />
+                <h3 className="text-lg font-semibold text-white">Performance Analysis</h3>
               </div>
-            ))
-          }
-          </div>
-
-          {/* Performance Analysis Chart */}
-          <div className="bg-[#101010] rounded-lg p-6 border border-gray-900">
-            <div className="flex items-center gap-2 mb-4">
-              <ChartNoAxesCombined className="w-8 h-8 text-yellow-500" />
-              <h3 className="text-lg font-semibold text-white">Performance Analysis</h3>
+              
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.3} />
+                    <XAxis 
+                      dataKey="time" 
+                      stroke="#9CA3AF"
+                      fontSize={12}
+                      tickLine={{ stroke: '#6B7280' }}
+                      axisLine={{ stroke: '#6B7280' }}
+                    />
+                    <YAxis 
+                      stroke="#9CA3AF"
+                      fontSize={12}
+                      tickLine={{ stroke: '#6B7280' }}
+                      axisLine={{ stroke: '#6B7280' }}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#111827', 
+                        border: '1px solid #374151', 
+                        borderRadius: '8px',
+                        color: '#F9FAFB',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                      }}
+                      labelStyle={{ color: '#9CA3AF' }}
+                      formatter={(value) => [`${value} WPM`, 'Speed']}
+                      labelFormatter={(label) => `Time: ${label}s`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="wpm" 
+                      stroke="#10B981" 
+                      strokeWidth={3}
+                      dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
+                      activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
+                      connectNulls={false}
+                    />
+                    <ReferenceLine 
+                      y={wpm}
+                      stroke="#FBBF24"
+                      strokeDasharray="4 4"
+                      label={{
+                        position: 'top',
+                        value: `WPM: ${wpm}`,
+                        fill: '#FBBF24',
+                        fontSize: 12
+                      }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.3} />
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="#9CA3AF"
-                    fontSize={12}
-                    tickLine={{ stroke: '#6B7280' }}
-                    axisLine={{ stroke: '#6B7280' }}
-                  />
-                  <YAxis 
-                    stroke="#9CA3AF"
-                    fontSize={12}
-                    tickLine={{ stroke: '#6B7280' }}
-                    axisLine={{ stroke: '#6B7280' }}
-                    domain={['dataMin - 5', 'dataMax + 5']}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#111827', 
-                      border: '1px solid #374151', 
-                      borderRadius: '8px',
-                      color: '#F9FAFB',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                    }}
-                    labelStyle={{ color: '#9CA3AF' }}
-                    formatter={(value) => [`${value} WPM`, 'Speed']}
-                    labelFormatter={(label) => `Time: ${label}s`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="wpm" 
-                    stroke="#10B981" 
-                    strokeWidth={3}
-                    dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
-                    activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
-                    connectNulls={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            {/* Main Stats Cards */}
+            <div className="flex flex-col gap-6 justify-between">
+            {
+              stats.map((stat, index) => (
+                <div key={index} className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-6'>
+                  {stat.icon}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="mb-1">
+                      <span className="text-gray-400 text-md uppercase tracking-wide">{stat.title}</span>
+                    </div>
+                    <div className="text-xl font-bold text-white">{stat.value}</div>
+                  </div>
+                </div>
+              ))
+            }
             </div>
           </div>
 
           {/* Type Again Button */}
-          <div className="text-center mt-4 flex justify-center">
-            <button
-              onClick={() => {
-                resetTest()
-                generateInitialWords()
-              }}
-              className="cursor-pointer px-8 py-2 custom-bgcolor text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex gap-2"
-            >
-              <RotateCcw className="mt-1 w-5 h-5 text-white" />
-              Type Again
-            </button>
-          </div>
+          <div className="text-center mt-8 flex justify-center w-full">
+              <button
+                onClick={() => {
+                  resetTest()
+                  generateInitialWords()
+                }}
+                className="cursor-pointer px-8 py-2 custom-bgcolor text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex gap-2"
+              >
+                <RotateCcw className="mt-1 w-5 h-5 text-white" />
+                Type Again
+              </button>
+            </div>
         </div>
       )}
 
