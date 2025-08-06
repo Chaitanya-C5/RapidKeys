@@ -409,7 +409,7 @@ function Type() {
     <div className="w-full flex flex-col items-center">
       {/* Header options: time/words */}
       <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mb-8">
-        <div className="flex gap-4 sm:gap-8">
+        <div className="flex gap-4 sm:gap-8 justify-center">
           <button
             className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "time" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
             onClick={() => setMode("time")}

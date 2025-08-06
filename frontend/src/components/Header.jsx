@@ -17,7 +17,7 @@ function Header() {
         </h1>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-3 sm:gap-4 items-center">
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-6 items-center">
         <div className="flex gap-2 items-center">
           <Keyboard className="text-gray-400 mt-0.5" />
           <button 
@@ -68,7 +68,7 @@ function Header() {
           </div>
         ) : (
           // Show elegant outlined button style for guests
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-6 md:mt-0">
             <button 
               className='px-4 py-2 text-sm border border-zinc-600 rounded-md hover:border-zinc-400 hover:text-white transition' 
               onClick={() => navigate("/login")}>

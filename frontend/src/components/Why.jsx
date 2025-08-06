@@ -19,7 +19,7 @@ function Why() {
             description: "Track progress over time with comprehensive stats.",
         },
         {
-            icon: <Bolt className="text-[#b6a6e9] w-10 h-10"/>,
+            icon: <Bolt className="text-[#b6a6e9] w-10 h-10" />,
             title: "Customizable Options",
             description: "Choose from different typing modes to suit your needs.",
         },
@@ -29,40 +29,49 @@ function Why() {
             description: "Enjoy a sleek design that enhances your focus.",
         },
     ]
-  return (
-    <div className="flex flex-col items-center">
-        <div className="my-10 text-center">
-            <p className='text-5xl text-white'>Why choose <span className='custom-color'>RapidKeys?</span></p>
-        </div>
 
-        <div className='grid grid-cols-6 grid-rows-2 gap-x-8 gap-y-8 p-10 rounded-lg w-[85%]'>
-            {
-                features.map((feature, index) => (
-                    <Card 
-                        key={index} 
-                        className="bg-zinc-900 text-white hover:shadow-lg transition-all duration-300 border-none col-span-2"
-                        style={index > 2 ? {  gridColumn: index === 3 ? '2 / 4' : '4 / 6' } : {}}
-                    >
-                        <CardHeader className="flex items-center justify-center gap-3">
-                        {feature.icon}
-                        <CardTitle className="text-xl font-semibold">{feature.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center text-zinc-400">
-                        <p>{feature.description}</p>
-                        </CardContent>
-                    </Card>
-                ))
-            }
+    return (
+        <div className="flex flex-col items-center">
+            <div className="my-10 text-center">
+                <p className='text-5xl text-white'>Why choose <span className='custom-color'>RapidKeys?</span></p>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-6 grid-rows-auto gap-x-8 gap-y-8 p-6 md:p-10 rounded-lg w-[95%] md:w-[85%]'>
+                {
+                    features.map((feature, index) => {
+                        const colSpan = "col-span-1 md:col-span-2"
+                        const responsiveStyle = index > 2 
+                            ? (index === 3 
+                                ? "md:col-start-2 md:col-end-4"
+                                : "md:col-start-4 md:col-end-6")
+                            : ""
+
+                        return (
+                            <Card 
+                                key={index} 
+                                className={`bg-zinc-900 text-white hover:shadow-lg transition-all duration-300 border-none ${colSpan} ${responsiveStyle}`}
+                            >
+                                <CardHeader className="flex items-center justify-center gap-3">
+                                    {feature.icon}
+                                    <CardTitle className="text-xl font-semibold">{feature.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="text-center text-zinc-400">
+                                    <p>{feature.description}</p>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
+                }
+            </div>
+
+            <div className="flex flex-col items-center mt-10 gap-3 hover-custom cursor-pointer">
+                <div className="line w-10 h-1 bg-zinc-700 rounded-full transition-all duration-300" />
+                <p className="text text-zinc-500 text-sm italic transition-all duration-300">
+                    Built for coders, designed for flow.
+                </p>
+            </div>
         </div>
-        
-        <div className="flex flex-col items-center mt-10 gap-3 hover-custom cursor-pointer">
-            <div className="line w-10 h-1 bg-zinc-700 rounded-full transition-all duration-300" />
-            <p className="text text-zinc-500 text-sm italic transition-all duration-300">
-                Built for coders, designed for flow.
-            </p>
-        </div>
-    </div>
-  )
+    )
 }
 
 export default Why
