@@ -190,28 +190,6 @@ function Type() {
     return typedWord === actualWord
   }
 
-  // Go back to previous word (only if it has errors)
-  const goToPreviousWord = () => {
-    if (currentWordIndex > 0) {
-      const prevWordIndex = currentWordIndex - 1
-      const prevTypedWord = typedHistory[prevWordIndex] || ""
-      const prevActualWord = words[prevWordIndex] || ""
-      
-      // Only allow going back if the previous word has errors
-      if (!isWordCorrect(prevTypedWord, prevActualWord)) {
-        setCurrentWordIndex(prevWordIndex)
-        setInputValue(prevTypedWord)
-        // Remove the word from history so it can be retyped
-        setTypedHistory(prev => prev.slice(0, prevWordIndex))
-        
-        // Recalculate stats by removing the previous word's contribution
-        const { correct, incorrect } = calculateWordAccuracy(prevTypedWord, prevActualWord)
-        setCorrectCharCount(prev => prev - correct)
-        setIncorrectCharCount(prev => prev - incorrect)
-      }
-    }
-  }
-
   // Finish current word and move to next
   const finishWord = () => {
     if (startTime === null) setStartTime(Date.now())
@@ -260,13 +238,6 @@ function Type() {
       // If no content, space does nothing (prevents multiple spaces)
     } else if (e.key === "Backspace") {
       e.preventDefault()
-      if (inputValue.length > 0) {
-        // Normal backspace within current word
-        setInputValue(prev => prev.slice(0, -1))
-      } else {
-        // At start of current word, try to go to previous word (only if it has errors)
-        goToPreviousWord()
-      }
     } else if (
       e.key.length === 1 &&
       !e.ctrlKey &&
