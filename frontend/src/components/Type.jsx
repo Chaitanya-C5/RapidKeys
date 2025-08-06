@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombined } from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { COMMON_WORDS } from "../lib/utils"
+import { Tooltip as ShadcnTooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 
 function Type() {
   const [mode, setMode] = useState("words")
@@ -379,19 +380,28 @@ function Type() {
   const [chartData, setChartData] = useState([])
   const stats = [
     {
-      icon: <Activity className="w-8 h-8 text-blue-500 ml-4" />,
+      icon: <Activity className="w-8 h-8 text-blue-500" />,
       title: "WPM",
       value: wpm,
+      tooltip: `${wpm} WPM`
     },
     {
-      icon: <Target className="w-8 h-8 text-green-500 ml-4" />,
+      icon: <Target className="w-8 h-8 text-green-500" />,
       title: "ACCURACY",
       value: accuracy,
+      tooltip: (
+        <div className="space-y-1">
+          <p>{accuracy}%</p>
+          <p className="text-green-400">Correct: {correctCharCount}</p>
+          <p className="text-red-400">Incorrect: {incorrectCharCount}</p>
+        </div>
+      )
     },
     {
-      icon: <Hourglass className="w-8 h-8 text-purple-500 ml-4" />,
+      icon: <Hourglass className="w-8 h-8 text-purple-500" />,
       title: "TIME",
-      value: elapsedTime.toFixed(0),
+      value: Math.round(elapsedTime),
+      tooltip: `${Math.round(elapsedTime)} seconds`
     }
   ]
 
@@ -506,7 +516,7 @@ function Type() {
                       axisLine={{ stroke: '#6B7280' }}
                       domain={[0, 'auto']}
                     />
-                    <Tooltip 
+                    <RechartsTooltip 
                       contentStyle={{ 
                         backgroundColor: '#111827', 
                         border: '1px solid #374151', 
@@ -545,19 +555,28 @@ function Type() {
             
             {/* Main Stats Cards */}
             <div className="flex flex-col gap-6 justify-between">
-            {
-              stats.map((stat, index) => (
-                <div key={index} className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-6'>
-                  {stat.icon}
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="mb-1">
-                      <span className="text-gray-400 text-md uppercase tracking-wide">{stat.title}</span>
-                    </div>
-                    <div className="text-xl font-bold text-white">{stat.value}</div>
-                  </div>
-                </div>
-              ))
-            }
+              <TooltipProvider>
+                {stats.map((stat, index) => (
+                  <ShadcnTooltip key={index}>
+                    <TooltipTrigger asChild>
+                      <div className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-6 cursor-help'>
+                        {stat.icon}
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="mb-1">
+                            <span className="text-gray-400 text-md uppercase tracking-wide">{stat.title}</span>
+                          </div>
+                          <div className="text-xl font-bold text-white">
+                            {stat.title === 'ACCURACY' ? `${stat.value}%` : stat.title === 'TIME' ? `${stat.value}s` : stat.value}
+                          </div>
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-gray-800 text-white border-gray-700">
+                      {stat.tooltip}
+                    </TooltipContent>
+                  </ShadcnTooltip>
+                ))}
+              </TooltipProvider>
             </div>
           </div>
 
