@@ -3,6 +3,10 @@ from fastapi import FastAPI
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from app.routes import user
+from app.config.db import Base, engine
+
+Base.metadata.create_all(bind=engine)
 
 load_dotenv()
 
@@ -19,6 +23,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(user.router, prefix="/api/v1", tags=["User"])
 
 @app.get("/")
 async def root():
