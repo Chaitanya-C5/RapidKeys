@@ -201,7 +201,7 @@ function Signup() {
                 placeholder="Username"
                 value={formData.username}
                 onChange={handleInputChange}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-blue-500"
+                className="pl-10 bg-zinc-900 text-white placeholder-zinc-500"
               />
             </div>
             {/* Username Status */}
@@ -233,7 +233,7 @@ function Signup() {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-blue-500"
+                className="pl-10 bg-zinc-900 text-white placeholder-zinc-500"
               />
             </div>
             {errors.email && (
@@ -251,7 +251,7 @@ function Signup() {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-blue-500"
+                className="pl-10 pr-10 bg-zinc-900 text-white placeholder-zinc-500 focus:border-blue-500"
               />
               <button
                 type="button"
@@ -276,7 +276,7 @@ function Signup() {
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-blue-500"
+                className="pl-10 pr-10 bg-zinc-900 text-white placeholder-zinc-500"
               />
               <button
                 type="button"

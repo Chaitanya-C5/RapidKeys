@@ -140,7 +140,7 @@ function Login() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="flex items-center justify-center gap-2 mb-4 cursor-pointer" onClick={() => navigate("/")}>
             <Zap className="custom-color w-8 h-8" />
             <h1 className="font-bold text-3xl">
               Rapid<span className="custom-color">Keys</span>
@@ -154,7 +154,7 @@ function Login() {
         <Button
           onClick={handleGoogleLogin}
           disabled={isGoogleLoading}
-          className="w-full mb-6 bg-white text-black hover:bg-gray-100 font-semibold py-3 flex items-center justify-center gap-3 disabled:opacity-50"
+          className="w-full mb-6 bg-white text-black hover:bg-gray-100 font-semibold py-3 flex items-center justify-center gap-3 disabled:opacity-50 cursor-pointer"
         >
           {isGoogleLoading ? (
             <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
@@ -191,7 +191,7 @@ function Login() {
                 placeholder="Email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-blue-500"
+                className="pl-10 bg-zinc-900 text-white placeholder-zinc-500 focus:border-none"
               />
             </div>
             {errors.email && (
@@ -209,7 +209,7 @@ function Login() {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="pl-10 pr-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-blue-500"
+                className="pl-10 pr-10 bg-zinc-900 text-white placeholder-zinc-500 focus:border-none"
               />
               <button
                 type="button"
