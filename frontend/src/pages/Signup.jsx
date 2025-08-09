@@ -144,8 +144,7 @@ function Signup() {
   }
 
   const handleGoogleSignup = () => {
-    // TODO: Implement Google OAuth
-    console.log('Google signup clicked')
+    window.location.href = "http://127.0.0.1:8000/api/v1/auth/google";
   }
 
   return (

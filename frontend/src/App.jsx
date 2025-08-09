@@ -7,6 +7,7 @@ import About from "./components/About"
 import Type from "./components/Type"
 import ProtectedRoute from "./components/ProtectedRoute"
 import { AuthProvider } from "./contexts/AuthContext"
+import GoogleSuccess from "./pages/GoogleSuccess"
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             </Route>
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/google-success" element={<GoogleSuccess />} />
         </Routes>
       </Router>
     </AuthProvider>
