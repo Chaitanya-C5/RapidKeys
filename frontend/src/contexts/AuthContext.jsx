@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import axiosClient from '../api/api'
+
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL
 
 // Create Auth Context
 const AuthContext = createContext()
@@ -46,19 +49,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
+      const { data } = await axiosClient.post('/login', { email, password })
       
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
-        // Store auth data
+      if (data.success) {
         localStorage.setItem('authToken', data.token)
         localStorage.setItem('userData', JSON.stringify(data.user))
         
@@ -71,25 +64,15 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Login error:', error)
-      return { success: false, error: 'Network error. Please try again.' }
+      return { success: false, error: error.response?.data?.message || 'Network error. Please try again.' }
     }
   }
 
-  const signup = async (userData) => {
+  const signup = async (userData) => {  
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      })
+      const { data } = await axiosClient.post('/signup', userData)
       
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
-        // Store auth data
+      if (data.success) {
         localStorage.setItem('authToken', data.token)
         localStorage.setItem('userData', JSON.stringify(data.user))
         
@@ -102,43 +85,39 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Signup error:', error)
-      return { success: false, error: 'Network error. Please try again.' }
+      return { success: false, error: error.response?.data?.message || 'Network error. Please try again.' }
     }
   }
 
-  const googleLogin = async (googleToken) => {
-    try {
-      // Send Google token to backend for verification and user creation/login
-      const response = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: googleToken }),
-      })
+  // const googleLogin = async (googleToken) => {
+  //   try {
+  //     // Send Google token to backend for verification and user creation/login
+  //     const { data } = await axios.post('/api/auth/google', { token: googleToken })
       
-      const data = await response.json()
-      
-      if (response.ok && data.success) {
-        // Store auth data
-        localStorage.setItem('authToken', data.token)
-        localStorage.setItem('userData', JSON.stringify(data.user))
+  //     if (data.success) {
+  //       // Store auth data
+  //       localStorage.setItem('authToken', data.token)
+  //       localStorage.setItem('userData', JSON.stringify(data.user))
         
-        setUser(data.user)
-        setIsAuthenticated(true)
+  //       setUser(data.user)
+  //       setIsAuthenticated(true)
         
-        return { 
-          success: true, 
-          user: data.user, 
-          isNewUser: data.isNewUser // Backend tells us if account was just created
-        }
-      } else {
-        return { success: false, error: data.message || 'Google login failed' }
-      }
-    } catch (error) {
-      console.error('Google login error:', error)
-      return { success: false, error: 'Network error. Please try again.' }
-    }
+  //       return { 
+  //         success: true, 
+  //         user: data.user, 
+  //         isNewUser: data.isNewUser // Backend tells us if account was just created
+  //       }
+  //     } else {
+  //       return { success: false, error: data.message || 'Google login failed' }
+  //     }
+  //   } catch (error) {
+  //     console.error('Google login error:', error)
+  //     return { success: false, error: error.response?.data?.message || 'Network error. Please try again.' }
+  //   }
+  // }
+
+  const handleGoogleSignup = () => {
+    window.location.href = `${BACKEND_BASE_URL}/auth/google`
   }
 
   const logout = () => {
@@ -156,7 +135,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     signup,
-    googleLogin,
+    handleGoogleSignup,
     logout
   }
 

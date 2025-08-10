@@ -70,12 +70,12 @@ function Header() {
           // Show elegant outlined button style for guests
           <div className="flex items-center gap-3 mt-6 md:mt-0">
             <button 
-              className='px-4 py-2 text-sm border border-zinc-600 rounded-md hover:border-zinc-400 hover:text-white transition' 
+              className='cursor-pointer px-4 py-2 text-sm border border-zinc-600 rounded-md hover:border-zinc-400 hover:text-white transition' 
               onClick={() => navigate("/login")}>
                 Sign in
             </button>
             <button 
-              className='px-4 py-2 text-sm custom-bgcolor rounded-md hover:opacity-90 transition font-semibold text-white' 
+              className='cursor-pointer px-4 py-2 text-sm custom-bgcolor rounded-md hover:opacity-90 transition font-semibold text-white' 
               onClick={() => navigate("/signup")}>
                 Sign up
             </button>

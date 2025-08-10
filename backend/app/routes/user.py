@@ -30,6 +30,16 @@ def signup(db: db_dependency, user: UserCreate = Body(...)):
     db.add(user)
     db.commit()
 
+    token = jwt.encode(
+        {"sub": str(user.id)},
+        os.getenv("JWT_SECRET"),
+        algorithm="HS256"
+    )
+
+    new_user = { "id": user.id, "username": user.username, "email": user.email, "auth_provider": "credentials" }
+
+    return {"success": True, "token": token, "user": new_user}
+
 @router.get("/auth/google")
 def google_login():
     base_url = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -42,7 +52,7 @@ def google_login():
         "prompt": "consent"
     }
     url = f"{base_url}?{urllib.parse.urlencode(params)}"
-    return RedirectResponse(url)
+    return RedirectResponse(url) 
 
 @router.get("/auth/google/callback")
 def google_callback(db: db_dependency, code: str):

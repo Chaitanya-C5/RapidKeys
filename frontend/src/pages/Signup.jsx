@@ -14,12 +14,7 @@ const formReducer = (state, action) => {
         [action.field]: action.value
       }
     case 'RESET_FORM':
-      return {
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: ''
-      }
+      return initialFormState
     default:
       return state
   }
@@ -35,56 +30,20 @@ const initialFormState = {
 
 function Signup() {
   const navigate = useNavigate()
-  const { signup } = useAuth()
+  const { signup, handleGoogleSignup } = useAuth()
   const [formData, dispatch] = useReducer(formReducer, initialFormState)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [usernameStatus, setUsernameStatus] = useState({ checking: false, available: null, message: '' })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
 
-  // Mock username availability check (replace with actual API call)
-  const checkUsernameAvailability = async (username) => {
-    if (username.length < 3) {
-      setUsernameStatus({ checking: false, available: false, message: 'Username must be at least 3 characters' })
-      return
-    }
-
-    setUsernameStatus({ checking: true, available: null, message: 'Checking...' })
-    
-    // Simulate API call
-    setTimeout(() => {
-      const unavailableUsernames = ['admin', 'test', 'user', 'rapidkeys']
-      const isAvailable = !unavailableUsernames.includes(username.toLowerCase())
-      
-      setUsernameStatus({
-        checking: false,
-        available: isAvailable,
-        message: isAvailable ? 'Username available!' : 'Username already taken'
-      })
-    }, 500)
-  }
-
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    
-    // Update form data using reducer
-    dispatch({
-      type: 'UPDATE_FIELD',
-      field: name,
-      value: value
-    })
-    
+    dispatch({ type: 'UPDATE_FIELD', field: name, value })
+
     // Clear errors when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
-    }
-
-    // Check username availability
-    if (name === 'username' && value.trim()) {
-      checkUsernameAvailability(value.trim())
-    } else if (name === 'username') {
-      setUsernameStatus({ checking: false, available: null, message: '' })
     }
   }
 
@@ -95,8 +54,6 @@ function Signup() {
       newErrors.username = 'Username is required'
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters'
-    } else if (!usernameStatus.available) {
-      newErrors.username = 'Please choose an available username'
     }
 
     if (!formData.email.trim()) {
@@ -121,16 +78,13 @@ function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
     if (!validateForm()) return
 
     setIsLoading(true)
-    
+
     try {
       const result = await signup(formData)
-      
       if (result.success) {
-        // On success, navigate to type page
         navigate('/type', { replace: true })
       } else {
         setErrors({ submit: result.error })
@@ -143,16 +97,15 @@ function Signup() {
     }
   }
 
-  const handleGoogleSignup = () => {
-    window.location.href = "http://127.0.0.1:8000/api/v1/auth/google";
-  }
+  
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-mono flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4 cursor-pointer"
+          <div
+            className="flex items-center justify-center gap-2 mb-4 cursor-pointer"
             onClick={() => navigate("/")}
           >
             <Zap className="custom-color w-8 h-8" />
@@ -190,7 +143,7 @@ function Signup() {
 
         {/* Signup Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Username Field */}
+          {/* Username */}
           <div>
             <div className="relative">
               <User className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
@@ -203,26 +156,12 @@ function Signup() {
                 className="pl-10 bg-zinc-900 text-white placeholder-zinc-500"
               />
             </div>
-            {/* Username Status */}
-            {formData.username && (
-              <div className="mt-1 text-sm">
-                {usernameStatus.checking && (
-                  <span className="text-yellow-500">⏳ {usernameStatus.message}</span>
-                )}
-                {!usernameStatus.checking && usernameStatus.available === true && (
-                  <span className="text-green-500">✓ {usernameStatus.message}</span>
-                )}
-                {!usernameStatus.checking && usernameStatus.available === false && (
-                  <span className="text-red-500">✗ {usernameStatus.message}</span>
-                )}
-              </div>
-            )}
             {errors.username && (
               <p className="mt-1 text-sm text-red-500">{errors.username}</p>
             )}
           </div>
 
-          {/* Email Field */}
+          {/* Email */}
           <div>
             <div className="relative">
               <Mail className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
@@ -240,7 +179,7 @@ function Signup() {
             )}
           </div>
 
-          {/* Password Field */}
+          {/* Password */}
           <div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
@@ -265,7 +204,7 @@ function Signup() {
             )}
           </div>
 
-          {/* Confirm Password Field */}
+          {/* Confirm Password */}
           <div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 w-5 h-5 text-zinc-500" />
@@ -295,10 +234,10 @@ function Signup() {
             <p className="text-sm text-red-500 text-center">{errors.submit}</p>
           )}
 
-          {/* Submit Button */}
+          {/* Submit */}
           <Button
             type="submit"
-            disabled={isLoading || !usernameStatus.available}
+            disabled={isLoading}
             className="w-full custom-bgcolor text-white font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Creating Account...' : 'Create Account'}
