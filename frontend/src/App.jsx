@@ -8,6 +8,7 @@ import Type from "./components/Type"
 import ProtectedRoute from "./components/ProtectedRoute"
 import { AuthProvider } from "./contexts/AuthContext"
 import GoogleSuccess from "./pages/GoogleSuccess"
+import Multiplayer from "./components/Multiplayer"
 
 function App() {
   return (

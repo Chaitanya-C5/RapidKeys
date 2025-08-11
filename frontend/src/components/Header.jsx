@@ -45,7 +45,7 @@ function Header() {
           <Swords className="text-gray-400" />
           <button 
             className='cursor-pointer hover:text-white transition' 
-            onClick={() => navigate("/")}>
+            onClick={() => navigate("/multiplayer")}>
               Multiplayer
             </button>
         </div>
