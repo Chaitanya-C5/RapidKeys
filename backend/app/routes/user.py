@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Body, Depends
-from app.models.user import UserCreate
+from app.models.user import UserCreate, UserLogin
 from app.models.sqlalchemy_user import User
 from app.utils.db_conn import db_dependency
 import os
@@ -9,14 +9,21 @@ import urllib.parse
 import requests
 from sqlalchemy.orm import Session
 import jwt
-from app.utils.hasher import get_password_hash
+from app.utils.hasher import get_password_hash, verify_password
+import os
+from fastapi.security import OAuth2PasswordBearer  
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")  
+
+router = APIRouter()
 
 load_dotenv()
 
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI") 
 
 SECRET_KEY = os.getenv("JWT_SECRET")
 ALGORITHM = os.getenv("JWT_ALGORITHM")
@@ -99,3 +106,31 @@ def google_callback(db: db_dependency, code: str):
 
     frontend_url = f"{os.getenv('FRONTEND_URL')}/google-success?token={token}"
     return RedirectResponse(frontend_url)
+ 
+@router.get("/profile")
+def get_profile(db: db_dependency, token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
+        user = db.query(User).filter(User.id == payload["sub"]).first()
+        user = {"id": user.id, "username": user.username, "email": user.email, "auth_provider": user.auth_provider}
+        return {"success": True, "user": user, "token": token}  
+    except Exception as e:
+        return {"success": False, "error": str(e)}  
+
+
+@router.post("/login")
+def login(db: db_dependency, user: UserLogin = Body(...)):
+    user_in_db = db.query(User).filter(User.email == user.email).first()
+    if not user_in_db:
+        return {"success": False, "error": "User not found"}
+    if not verify_password(user.password, user_in_db.password):
+        return {"success": False, "error": "Incorrect password"}
+    token = jwt.encode(
+        {"sub": str(user_in_db.id)},
+        os.getenv("JWT_SECRET"),
+        algorithm="HS256"
+    )
+
+    new_user = { "id": user_in_db.id, "username": user_in_db.username, "email": user_in_db.email, "auth_provider": "credentials" }
+
+    return {"success": True, "token": token, "user": new_user}

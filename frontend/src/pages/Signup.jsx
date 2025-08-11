@@ -85,7 +85,7 @@ function Signup() {
     try {
       const result = await signup(formData)
       if (result.success) {
-        navigate('/type', { replace: true })
+        navigate('/', { replace: true })
       } else {
         setErrors({ submit: result.error })
       }
@@ -96,8 +96,6 @@ function Signup() {
       setIsLoading(false)
     }
   }
-
-  
 
   return (
     <div className="min-h-screen bg-black text-gray-300 font-mono flex items-center justify-center p-4">

@@ -16,9 +16,14 @@ function App() {
         <Routes>
             <Route path="/" element={<Home />} >
               <Route index element={<About />} />
-              <Route path="/type" element={
+              <Route path="type" element={
                 <ProtectedRoute>
                   <Type />
+                </ProtectedRoute>
+              } />
+              <Route path='multiplayer' element={
+                <ProtectedRoute>
+                  <Multiplayer />
                 </ProtectedRoute>
               } />
             </Route>

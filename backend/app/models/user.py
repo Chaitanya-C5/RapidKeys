@@ -16,7 +16,7 @@ class User(BaseModel):
     id: Optional[str] = None
     username: str
     email: str
-    password_hash: Optional[str] = None
+    password: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

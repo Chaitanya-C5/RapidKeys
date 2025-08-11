@@ -1,10 +1,24 @@
-import { Zap, Keyboard, Swords, Crown, User, LogIn, UserPlus } from 'lucide-react'
+import { Zap, Keyboard, Swords, Crown, User } from 'lucide-react'
+import { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-
+  
 function Header() {
   const navigate = useNavigate()
   const { isAuthenticated, user, logout } = useAuth()
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="text-gray-300 font-mono bg-black w-full flex flex-col sm:flex-row justify-between items-center px-4 text-lg py-12 sm:mb-8">
@@ -52,19 +66,37 @@ function Header() {
         {isAuthenticated ? (
           // Show Profile and Logout for logged-in users
           <div className="flex gap-4 items-center">
-            <div className="flex gap-2 items-center">
-              <User className="text-gray-400" />
-              <button 
-                className='cursor-pointer hover:text-white transition' 
-                onClick={() => navigate("/profile")}>
-                  {user?.username || 'Profile'}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                className="flex items-center gap-2 cursor-pointer hover:text-white transition"
+                onClick={() => setDropdownOpen((open) => !open)}
+              >
+                <User className="text-gray-400" />
+                <span className='pr-8'>{user?.username || "Profile"}</span>
               </button>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-zinc-900 border border-zinc-700 rounded-md shadow-lg z-50">
+                  <button
+                    className="block w-full px-4 py-2 text-left hover:bg-zinc-800 transition"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate("/profile");
+                    }}
+                  >
+                    Profile
+                  </button>
+                  <button
+                    className="block w-full px-4 py-2 text-left text-red-400 hover:bg-zinc-800 transition"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      logout();
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
-            <button 
-              className='cursor-pointer hover:text-red-400 transition text-sm' 
-              onClick={logout}>
-                Logout
-            </button>
           </div>
         ) : (
           // Show elegant outlined button style for guests
