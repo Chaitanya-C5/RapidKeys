@@ -21,7 +21,7 @@ function Header() {
   }, []);
 
   return (
-    <div className="text-gray-300 font-mono bg-black w-full flex flex-col sm:flex-row justify-between items-center px-4 text-lg py-12 sm:mb-8">
+    <div className="text-gray-300 font-mono bg-black w-full flex flex-col sm:flex-row justify-between items-center px-4 text-lg py-12 sm:mb-4">
       
       <div className="flex items-center gap-2">
         <Zap className="custom-color w-7 h-7" />
