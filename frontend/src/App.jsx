@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import { AuthProvider } from "./contexts/AuthContext"
 import GoogleSuccess from "./pages/GoogleSuccess"
 import RoomEntry from "./components/RoomEntry"
+import Multiplayer from "./components/Multiplayer"
 
 function App() {
   return (
@@ -25,6 +26,11 @@ function App() {
               <Route path='room' element={
                 <ProtectedRoute>
                   <RoomEntry />
+                </ProtectedRoute>
+              } />
+              <Route path='multiplayer/:roomCode' element={
+                <ProtectedRoute>
+                  <Multiplayer />
                 </ProtectedRoute>
               } />
             </Route>

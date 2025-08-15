@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { Clock, Hash, Plus, LogIn, Loader2, Settings } from 'lucide-react'
+import { createRoom, getRoomInfo } from '../api/multiplayer'
+import { useNavigate } from 'react-router-dom'
 
 const RoomEntry = () => {
+  const navigate = useNavigate()
   // Game mode and settings state
   const [selectedMode, setSelectedMode] = useState('time')
   const [selectedDuration, setSelectedDuration] = useState(60)
@@ -36,14 +39,21 @@ const RoomEntry = () => {
     setError('')
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      console.log('Room created with settings:', {
+      const settings = {
         mode: selectedMode,
-        value: selectedMode === 'time' ? selectedDuration : selectedWordCount
-      })
+        value: selectedMode === 'time' ? selectedDuration : selectedWordCount,
+      }
+      const res = await createRoom(settings)
+      if (!res.ok) throw new Error(res.message || 'Failed to create room')
+
+      const roomCode = res.data?.room_code
+      if (!roomCode) throw new Error('No room code returned')
+
+      // Navigate to the multiplayer room page 
+      navigate(`/multiplayer/${roomCode}`) 
     } catch (error) {
       console.error('Room creation error:', error)
-      setError('Failed to create room. Please try again.')
+      setError(error?.message || 'Failed to create room. Please try again.')
     } finally {
       setIsCreating(false)
     }
@@ -59,11 +69,17 @@ const RoomEntry = () => {
     setError('')
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      console.log('Joined room:', joinRoomCode)
+      const code = joinRoomCode.trim().toUpperCase()
+      if (code.length !== 6) {
+        throw new Error('Room code must be 6 characters')
+      }
+      // Validate room exists before navigating
+      const res = await getRoomInfo(code)
+      if (!res.ok) throw new Error(res.message || 'Unable to fetch room info')
+      navigate(`/multiplayer/${code}`)
     } catch (error) {
       console.error('Room join error:', error)
-      setError('Failed to join room. Please try again.')
+      setError(error?.message || 'Failed to join room. Please try again.')
     } finally {
       setIsJoining(false)
     }

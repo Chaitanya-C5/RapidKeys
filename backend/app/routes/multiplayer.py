@@ -8,40 +8,40 @@ import uuid
 from datetime import datetime
 from app.models.sqlalchemy_user import User
 from app.utils.db_conn import db_dependency
+from app.config.redis_config import redis_manager
 import asyncio
+import random
+import string
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 
-# In-memory storage for rooms and connections
-# In production, you'd use Redis or a database
-rooms: Dict[str, Dict] = {}
-connections: Dict[str, WebSocket] = {}
-user_rooms: Dict[str, str] = {}  # user_id -> room_code
-
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
-        self.rooms: Dict[str, Dict] = {}
-        self.user_rooms: Dict[str, str] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str, room_code: str, username: str):
         await websocket.accept()
         self.active_connections[user_id] = websocket
-        self.user_rooms[user_id] = room_code
         
-        # Initialize room if it doesn't exist
-        if room_code not in self.rooms:
-            self.rooms[room_code] = {
+        # Initialize room in Redis if it doesn't exist
+        if not await redis_manager.room_exists(room_code):
+            room_data = {
                 "code": room_code,
                 "users": {},
                 "messages": [],
                 "created_at": datetime.now().isoformat(),
-                "race_started": False
+                "race_started": False,
+                "settings": {
+                    "mode": "time",
+                    "duration": 60,
+                    "difficulty": "medium"
+                }
             }
+            await redis_manager.create_room(room_code, room_data)
         
-        # Add user to room
-        self.rooms[room_code]["users"][user_id] = {
+        # Add user to room in Redis
+        user_data = {
             "id": user_id,
             "username": username,
             "joined_at": datetime.now().isoformat(),
@@ -50,17 +50,20 @@ class ConnectionManager:
             "progress": 0
         }
         
+        await redis_manager.add_user_to_room(room_code, user_id, user_data)
+        room_data = await redis_manager.get_room(room_code)
+        
         # Notify room about new user
         await self.broadcast_to_room(room_code, {
             "type": "user_joined",
-            "user": self.rooms[room_code]["users"][user_id],
-            "room_users": list(self.rooms[room_code]["users"].values())
+            "user": user_data,
+            "room_users": list(room_data["users"].values())
         })
         
         # Send room state to new user
         await self.send_personal_message({
             "type": "room_joined",
-            "room": self.rooms[room_code],
+            "room": room_data,
             "your_id": user_id
         }, websocket)
 
@@ -68,26 +71,28 @@ class ConnectionManager:
         if user_id in self.active_connections:
             del self.active_connections[user_id]
         
-        if user_id in self.user_rooms:
-            room_code = self.user_rooms[user_id]
-            del self.user_rooms[user_id]
+        # Schedule async cleanup
+        asyncio.create_task(self._async_disconnect_cleanup(user_id))
+
+    async def _async_disconnect_cleanup(self, user_id: str):
+        # Get user's room from Redis
+        room_code = await redis_manager.get_user_room(user_id)
+        if room_code:
+            # Get user info before removing
+            room_data = await redis_manager.get_room(room_code)
+            username = room_data["users"].get(user_id, {}).get("username", "Unknown") if room_data else "Unknown"
             
-            # Remove user from room
-            if room_code in self.rooms and user_id in self.rooms[room_code]["users"]:
-                username = self.rooms[room_code]["users"][user_id]["username"]
-                del self.rooms[room_code]["users"][user_id]
-                
-                # If room is empty, clean it up
-                if not self.rooms[room_code]["users"]:
-                    del self.rooms[room_code]
-                else:
-                    # Notify remaining users
-                    asyncio.create_task(self.broadcast_to_room(room_code, {
-                        "type": "user_left",
-                        "user_id": user_id,
-                        "username": username,
-                        "room_users": list(self.rooms[room_code]["users"].values())
-                    }))
+            # Remove user from room in Redis
+            updated_room_data = await redis_manager.remove_user_from_room(room_code, user_id)
+            
+            # If room still exists, notify remaining users
+            if updated_room_data:
+                await self.broadcast_to_room(room_code, {
+                    "type": "user_left",
+                    "user_id": user_id,
+                    "username": username,
+                    "room_users": list(updated_room_data["users"].values())
+                })
 
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         try:
@@ -96,11 +101,12 @@ class ConnectionManager:
             pass
 
     async def broadcast_to_room(self, room_code: str, message: dict):
-        if room_code not in self.rooms:
+        room_data = await redis_manager.get_room(room_code)
+        if not room_data:
             return
             
         disconnected_users = []
-        for user_id in self.rooms[room_code]["users"]:
+        for user_id in room_data["users"]:
             if user_id in self.active_connections:
                 try:
                     await self.active_connections[user_id].send_text(json.dumps(message))
@@ -112,10 +118,11 @@ class ConnectionManager:
             self.disconnect(user_id)
 
     async def handle_chat_message(self, room_code: str, user_id: str, message: str):
-        if room_code not in self.rooms or user_id not in self.rooms[room_code]["users"]:
+        room_data = await redis_manager.get_room(room_code)
+        if not room_data or user_id not in room_data["users"]:
             return
         
-        username = self.rooms[room_code]["users"][user_id]["username"]
+        username = room_data["users"][user_id]["username"]
         chat_message = {
             "id": str(uuid.uuid4()),
             "user_id": user_id,
@@ -124,8 +131,8 @@ class ConnectionManager:
             "timestamp": datetime.now().isoformat()
         }
         
-        # Store message in room
-        self.rooms[room_code]["messages"].append(chat_message)
+        # Store message in Redis
+        await redis_manager.add_message_to_room(room_code, chat_message)
         
         # Broadcast to all users in room
         await self.broadcast_to_room(room_code, {
@@ -134,33 +141,71 @@ class ConnectionManager:
         })
 
     async def handle_start_race(self, room_code: str, user_id: str):
-        if room_code not in self.rooms:
+        room_data = await redis_manager.get_room(room_code)
+        if not room_data or user_id not in room_data["users"]:
             return
         
-        # Only allow race start if user is in room
-        if user_id not in self.rooms[room_code]["users"]:
-            return
-        
-        self.rooms[room_code]["race_started"] = True
-        self.rooms[room_code]["race_start_time"] = datetime.now().isoformat()
+        start_time = datetime.now().isoformat()
+        await redis_manager.start_race(room_code, start_time)
         
         await self.broadcast_to_room(room_code, {
             "type": "race_started",
-            "start_time": self.rooms[room_code]["race_start_time"]
+            "start_time": start_time
         })
+
+    async def handle_typing_progress(self, room_code: str, user_id: str, progress: int, wpm: int):
+        if await redis_manager.update_user_progress(room_code, user_id, progress, wpm):
+            await self.broadcast_to_room(room_code, {
+                "type": "user_progress",
+                "user_id": user_id,
+                "progress": progress,
+                "wpm": wpm
+            })
+
+    async def handle_toggle_ready(self, room_code: str, user_id: str):
+        room_data = await redis_manager.get_room(room_code)
+        if not room_data or user_id not in room_data["users"]:
+            return
+        
+        current_ready = room_data["users"][user_id]["ready"]
+        updated_room_data = await redis_manager.update_user_ready_status(room_code, user_id, not current_ready)
+        
+        if updated_room_data:
+            await self.broadcast_to_room(room_code, {
+                "type": "user_ready_changed",
+                "user_id": user_id,
+                "ready": not current_ready,
+                "room_users": list(updated_room_data["users"].values())
+            })
 
 manager = ConnectionManager()
 
 def verify_token(token: str, db):
     try:
-        payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
-        user_id = payload.get("sub")
-        if user_id is None:
+        secret = os.getenv("JWT_SECRET")
+        if not secret:
             return None
-        user = db.query(User).filter(User.id == user_id).first()
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        # If User.id is a UUID column, cast incoming string to UUID
+        try:
+            user_uuid = uuid.UUID(str(user_id))
+            user = db.query(User).filter(User.id == user_uuid).first()
+        except (ValueError, AttributeError):
+            # Fallback for non-UUID string primary keys
+            user = db.query(User).filter(User.id == user_id).first()
         return user
-    except:
+    except Exception:
         return None
+
+async def generate_room_code() -> str:
+    """Generate a unique 6-character room code"""
+    while True:
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        if not await redis_manager.room_exists(code):
+            return code
 
 @router.websocket("/ws/{room_code}")
 async def websocket_endpoint(websocket: WebSocket, room_code: str, token: str, db: db_dependency):
@@ -189,33 +234,12 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str, token: str, d
                 await manager.handle_start_race(room_code, user_id)
             
             elif message_type == "typing_progress":
-                # Handle real-time typing progress updates
                 progress = message.get("progress", 0)
                 wpm = message.get("wpm", 0)
-                
-                if room_code in manager.rooms and user_id in manager.rooms[room_code]["users"]:
-                    manager.rooms[room_code]["users"][user_id]["progress"] = progress
-                    manager.rooms[room_code]["users"][user_id]["wpm"] = wpm
-                    
-                    await manager.broadcast_to_room(room_code, {
-                        "type": "user_progress",
-                        "user_id": user_id,
-                        "progress": progress,
-                        "wpm": wpm
-                    })
+                await manager.handle_typing_progress(room_code, user_id, progress, wpm)
             
             elif message_type == "toggle_ready":
-                # Toggle user ready status
-                if room_code in manager.rooms and user_id in manager.rooms[room_code]["users"]:
-                    current_ready = manager.rooms[room_code]["users"][user_id]["ready"]
-                    manager.rooms[room_code]["users"][user_id]["ready"] = not current_ready
-                    
-                    await manager.broadcast_to_room(room_code, {
-                        "type": "user_ready_changed",
-                        "user_id": user_id,
-                        "ready": not current_ready,
-                        "room_users": list(manager.rooms[room_code]["users"].values())
-                    })
+                await manager.handle_toggle_ready(room_code, user_id)
     
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -226,8 +250,7 @@ async def create_room(db: db_dependency, token: str = Depends(oauth2_scheme)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    # Generate unique room code
-    room_code = ''.join([chr(65 + i) for i in [__import__('random').randint(0, 25) for _ in range(6)]])
+    room_code = await generate_room_code()
     
     return {
         "success": True,
@@ -241,18 +264,42 @@ async def get_room_info(room_code: str, db: db_dependency, token: str = Depends(
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    if room_code not in manager.rooms:
+    room_data = await redis_manager.get_room(room_code)
+    if not room_data:
         raise HTTPException(status_code=404, detail="Room not found")
     
-    room = manager.rooms[room_code]
     return {
         "success": True,
         "room": {
-            "code": room["code"],
-            "user_count": len(room["users"]),
-            "users": list(room["users"].values()),
-            "race_started": room["race_started"],
-            "created_at": room["created_at"]
+            "code": room_data["code"],
+            "user_count": len(room_data["users"]),
+            "users": list(room_data["users"].values()),
+            "race_started": room_data["race_started"],
+            "created_at": room_data["created_at"],
+            "settings": room_data.get("settings", {})
         }
     }
 
+@router.get("/active-rooms")
+async def get_active_rooms(db: db_dependency, token: str = Depends(oauth2_scheme)):
+    user = verify_token(token, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    active_rooms = []
+    room_codes = await redis_manager.get_active_rooms()
+    
+    for room_code in room_codes:
+        room_data = await redis_manager.get_room(room_code)
+        if room_data:
+            active_rooms.append({
+                "code": room_code,
+                "user_count": len(room_data["users"]),
+                "race_started": room_data["race_started"],
+                "created_at": room_data["created_at"]
+            })
+    
+    return {
+        "success": True,
+        "rooms": active_rooms
+    }
