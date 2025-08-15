@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Copy, Send, Users, MessageSquare } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 
 const Multiplayer = () => {
-  const [roomCode] = useState('TXE531') // Mock room code
   const [wordCount] = useState(25)
+  const [copied, setCopied] = useState(false)
   const [chatMessages, setChatMessages] = useState([
     // Add some mock messages to demonstrate scrolling
     { id: 1, username: 'Alice', message: 'Hey everyone! Ready to race?', timestamp: new Date() },
@@ -22,6 +23,9 @@ const Multiplayer = () => {
   ])
   const chatEndRef = useRef(null)
 
+  const location = useLocation()
+  const roomCode = location.pathname.split('/').pop() 
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -29,7 +33,10 @@ const Multiplayer = () => {
 
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode)
-    // You could add a toast notification here
+    setCopied(true)
+    setTimeout(() => {
+      setCopied(false)
+    }, 2000)
   }
 
   const handleSendMessage = (e) => {
@@ -58,16 +65,22 @@ const Multiplayer = () => {
           <h1 className="text-lg font-bold text-white">
             Test Room | T {wordCount} words
           </h1>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs relative">
             <span className="text-gray-400"># Room Code:</span>
             <span className="text-white font-semibold">{roomCode}</span>
             <button
               onClick={copyRoomCode}
-              className="p-1 hover:bg-zinc-800 rounded transition"
+              className="p-1 hover:bg-zinc-800 rounded transition cursor-pointer"
               title="Copy room code"
             >
               <Copy size={16} className="text-gray-400 hover-custom" />
             </button>
+            {/* Copy notification */}
+            {copied && (
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-600 text-white px-2 py-1 rounded text-xs whitespace-nowrap z-10 shadow-lg text-white">
+                Copied!
+              </div>
+            )}
           </div>
         </div>
         
@@ -174,13 +187,6 @@ const Multiplayer = () => {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Room Info - Fixed at bottom */}
-          <div className="p-2 border-t border-zinc-700 flex-shrink-0">
-            <div className="text-xs text-gray-500 text-center">
-              <span className="custom-underline">Room Code Copied!</span>
-            </div>
           </div>
         </div>
       </div>
