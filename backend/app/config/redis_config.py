@@ -71,6 +71,7 @@ class RedisManager:
         """Add user to room"""
         room_data = await self.get_room(room_code)
         if room_data:
+            
             room_data["users"][user_id] = user_data
             await self.update_room(room_code, room_data)
             

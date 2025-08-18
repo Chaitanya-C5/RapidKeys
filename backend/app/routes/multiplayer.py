@@ -7,7 +7,7 @@ from typing import Dict, List, Set
 import uuid
 from datetime import datetime
 from app.models.sqlalchemy_user import User
-from app.utils.db_conn import db_dependency
+from app.config.db import SessionLocal
 from app.config.redis_config import redis_manager
 import asyncio
 import random
@@ -23,22 +23,13 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, user_id: str, room_code: str, username: str):
         await websocket.accept()
         self.active_connections[user_id] = websocket
-        
-        # Initialize room in Redis if it doesn't exist
-        if not await redis_manager.room_exists(room_code):
-            room_data = {
-                "code": room_code,
-                "users": {},
-                "messages": [],
-                "created_at": datetime.now().isoformat(),
-                "race_started": False,
-                "settings": {
-                    "mode": "time",
-                    "duration": 60,
-                    "difficulty": "medium"
-                }
-            }
-            await redis_manager.create_room(room_code, room_data)
+
+        room_data = await redis_manager.get_room(room_code)
+        if not room_data:
+            await websocket.close(code=1008, reason="Room not found")
+            return
+
+        is_host = room_data.get("creator_id") == user_id
         
         # Add user to room in Redis
         user_data = {
@@ -47,7 +38,9 @@ class ConnectionManager:
             "joined_at": datetime.now().isoformat(),
             "ready": False,
             "wpm": 0,
-            "progress": 0
+            "accuracy": 0,
+            "progress": 0,
+            "is_host": is_host
         }
         
         await redis_manager.add_user_to_room(room_code, user_id, user_data)
@@ -208,9 +201,12 @@ async def generate_room_code() -> str:
             return code
 
 @router.websocket("/ws/{room_code}")
-async def websocket_endpoint(websocket: WebSocket, room_code: str, token: str, db: db_dependency):
+async def websocket_endpoint(websocket: WebSocket, room_code: str):
+    token = websocket.query_params.get("token")
     # Verify user authentication
-    user = verify_token(token, db)
+    with SessionLocal() as db:
+        user = verify_token(token, db)
+    print(user)
     if not user:
         await websocket.close(code=1008, reason="Invalid token")
         return
@@ -245,12 +241,29 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str, token: str, d
         manager.disconnect(user_id)
 
 @router.post("/create-room")
-async def create_room(db: db_dependency, token: str = Depends(oauth2_scheme)):
-    user = verify_token(token, db)
+async def create_room(settings: dict, token: str = Depends(oauth2_scheme)):
+    with SessionLocal() as db:
+        user = verify_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
     room_code = await generate_room_code()
+    print(settings)
+    # Create room with provided settings
+    room_data = {
+        "code": room_code,
+        "creator_id": str(user.id),  # Store the room creator's ID
+        "users": {},
+        "messages": [],
+        "created_at": datetime.now().isoformat(),
+        "race_started": False,
+        "settings": {
+            "mode": settings.get("mode", "time"),
+            "value": settings.get("value", 60),
+            "difficulty": settings.get("difficulty", "medium")
+        }
+    }
+    await redis_manager.create_room(room_code, room_data)
     
     return {
         "success": True,
@@ -259,8 +272,9 @@ async def create_room(db: db_dependency, token: str = Depends(oauth2_scheme)):
     }
 
 @router.get("/room/{room_code}")
-async def get_room_info(room_code: str, db: db_dependency, token: str = Depends(oauth2_scheme)):
-    user = verify_token(token, db)
+async def get_room_info(room_code: str, token: str = Depends(oauth2_scheme)):
+    with SessionLocal() as db:
+        user = verify_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     
@@ -281,8 +295,9 @@ async def get_room_info(room_code: str, db: db_dependency, token: str = Depends(
     }
 
 @router.get("/active-rooms")
-async def get_active_rooms(db: db_dependency, token: str = Depends(oauth2_scheme)):
-    user = verify_token(token, db)
+async def get_active_rooms(token: str = Depends(oauth2_scheme)):
+    with SessionLocal() as db:
+        user = verify_token(token, db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     

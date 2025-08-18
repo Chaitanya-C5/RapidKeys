@@ -211,7 +211,7 @@ const RoomEntry = () => {
                   <button
                     onClick={handleCreateRoom}
                     disabled={isCreating}
-                    className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-zinc-700 disabled:text-gray-500 text-black font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-2 text-sm hover:shadow-lg hover:shadow-green-500/30"
+                    className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-zinc-700 disabled:text-gray-500 text-black font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-2 text-sm hover:shadow-lg hover:shadow-green-500/30 cursor-pointer"
                   >
                     {isCreating ? (
                       <>
@@ -271,7 +271,7 @@ const RoomEntry = () => {
                   <button
                     onClick={handleJoinRoom}
                     disabled={isJoining || joinRoomCode.length < 6}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-2 text-sm hover:shadow-lg hover:shadow-blue-500/30"
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-700 disabled:text-gray-500 text-white font-semibold rounded-md transition-all duration-200 flex items-center justify-center gap-2 text-sm hover:shadow-lg hover:shadow-blue-500/30 cursor-pointer"
                   >
                     {isJoining ? (
                       <>

@@ -1,35 +1,86 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Copy, Send, Users, MessageSquare } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { getRoomInfo, connectToRoom, sendChatMessage } from '../api/multiplayer'
 
 const Multiplayer = () => {
   const [wordCount] = useState(25)
   const [copied, setCopied] = useState(false)
-  const [chatMessages, setChatMessages] = useState([
-    // Add some mock messages to demonstrate scrolling
-    { id: 1, username: 'Alice', message: 'Hey everyone! Ready to race?', timestamp: new Date() },
-    { id: 2, username: 'Bob', message: 'Let\'s do this!', timestamp: new Date() },
-    { id: 3, username: 'Charlie', message: 'Good luck everyone', timestamp: new Date() },
-  ])
+  const [chatMessages, setChatMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
-  const [typists] = useState([
-    { id: 1, username: 'Chaitanya', avatar: 'C', color: 'bg-pink-500' },
-    { id: 2, username: 'Alice', avatar: 'A', color: 'bg-blue-500' },
-    { id: 3, username: 'Bob', avatar: 'B', color: 'bg-purple-500' },
-    { id: 4, username: 'Charlie', avatar: 'C', color: 'bg-yellow-500' },
-    { id: 5, username: 'Diana', avatar: 'D', color: 'bg-red-500' },
-    { id: 6, username: 'Eve', avatar: 'E', color: 'bg-green-500' },
-    { id: 7, username: 'Frank', avatar: 'F', color: 'bg-indigo-500' },
-  ])
+  const [users, setUsers] = useState([])
+  const [roomSettings, setRoomSettings] = useState({})
+  const [raceStarted, setRaceStarted] = useState(false)
   const chatEndRef = useRef(null)
+  const wsRef = useRef(null)
 
-  const location = useLocation()
-  const roomCode = location.pathname.split('/').pop() 
+  const { roomCode } = useParams()
 
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
+
+
+  // WebSocket connection
+  useEffect(() => {
+    if (!roomCode) return
+
+    const wsConnection = connectToRoom(roomCode, {
+      onMessage: (data) => {
+        switch (data.type) {
+          case 'room_joined': {
+            const room = data.room || {}
+            setUsers(Object.values(room.users || {}))
+            setRoomSettings(room.settings || {})
+            setRaceStarted(!!room.race_started)
+            setChatMessages((room.messages || []).map((m, idx) => ({ id: idx + 1, ...m })))
+            break
+          }
+          case 'user_joined': {
+            if (Array.isArray(data.room_users)) setUsers(data.room_users)
+            break
+          }
+          case 'user_left': {
+            if (Array.isArray(data.room_users)) setUsers(data.room_users)
+            break
+          }
+          case 'chat_message': {
+            const msg = data.message || data
+            //msg.timestamp = new Date(msg.timestamp);
+            setChatMessages((prev) => [...prev, { id: prev.length + 1, ...msg }])
+            break
+          }
+          case 'ready_toggled':
+          case 'typing_progress':
+          case 'race_started': {
+            // extend later as needed
+            break
+          }
+          default:
+            break
+        }
+      },
+      onOpen: () => {
+        console.log('Connected to room:', roomCode)
+      },
+      onClose: () => {
+        console.log('Disconnected from room:', roomCode)
+      },
+      onError: (error) => {
+        console.error('WebSocket error in room:', roomCode, error)
+      }
+    })
+
+    if (wsConnection) {
+      wsRef.current = wsConnection
+    }
+
+    return () => {
+      wsConnection?.close()
+      wsRef.current = null
+    }
+  }, [roomCode])
 
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode)
@@ -41,15 +92,9 @@ const Multiplayer = () => {
 
   const handleSendMessage = (e) => {
     e.preventDefault()
-    if (newMessage.trim()) {
-      setChatMessages(prev => [...prev, {
-        id: Date.now(),
-        username: 'You',
-        message: newMessage,
-        timestamp: new Date()
-      }])
-      setNewMessage('')
-    }
+    if (!newMessage.trim()) return
+    sendChatMessage(wsRef.current, newMessage.trim())
+    setNewMessage('')
   }
 
   const handleStartRace = () => {
@@ -115,13 +160,13 @@ const Multiplayer = () => {
                 {chatMessages.map(msg => (
                   <div key={msg.id} className="flex gap-2">
                     <div className="w-6 h-6 bg-zinc-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                      {msg.username[0].toUpperCase()}
+                      {(msg.username || '')[0].toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-white font-semibold text-xs">{msg.username}</span>
                         <span className="text-xs text-gray-500">
-                          {msg.timestamp.toLocaleTimeString()}
+                          {new Date(msg.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
                       <p className="text-gray-300 break-words text-xs">{msg.message}</p>
@@ -161,30 +206,40 @@ const Multiplayer = () => {
           <div className="flex items-center gap-2 p-2 border-b border-zinc-700 flex-shrink-0">
             <Users size={16} className="custom-color" />
             <h2 className="text-sm font-semibold text-white">
-              Typists ({typists.length})
+              Typists ({users.length})
             </h2>
           </div>
 
           {/* Typists List - Scrollable */}
           <div className="flex-1 p-2 overflow-y-auto min-h-0">
-            {typists.length === 0 ? (
+            {users.length === 0 ? (
               <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
                 <Users size={48} className="mb-4 opacity-50" />
                 <p>No typists in the room yet.</p>
               </div>
             ) : (
-              <div className="space-y-1.5">
-                {typists.map(typist => (
-                  <div key={typist.id} className="flex items-center gap-2 p-1 rounded-md hover:bg-zinc-800 transition scroll-hover">
-                    <div className={`w-7 h-7 ${typist.color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-xs`}>
-                      {typist.avatar}
+              <div className="space-y-2">
+                {users.map((user) => {
+                  const username = user.username || user.name || 'User'
+                  const avatar = (username[0] || '?').toUpperCase()
+                  return (
+                    <div key={user.id || username} className="flex items-center justify-between p-2 rounded bg-zinc-800">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-indigo-600 text-white font-bold`}>
+                          {avatar}
+                        </div>
+                        <div>
+                          <div className="text-white font-medium">{username}</div>
+                          <div className="text-xs text-gray-400">{user.ready ? 'Ready' : 'Not ready'}</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-gray-400 text-sm">{user.wpm ?? 0} WPM</div>
+                        <div className="text-gray-400 text-sm">{user.accuracy ?? 0}% ACC</div>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-white font-semibold scroll-item transition-colors truncate text-xs">{typist.username}</p>
-                      <p className="text-xs text-gray-500">Ready</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

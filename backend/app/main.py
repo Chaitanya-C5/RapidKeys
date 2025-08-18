@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import user, multiplayer
 from app.config.db import Base, engine
 from app.config.redis_config import redis_manager
+from app.models.sqlalchemy_user import User
+from sqlalchemy import text
 
+from app.config.db import SessionLocal
 Base.metadata.create_all(bind=engine)
 
 load_dotenv()
@@ -19,7 +22,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173")],
+    allow_origins=[os.getenv("FRONTEND_URL")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,6 +40,7 @@ async def startup_event():
 @app.get("/")
 async def root():
     return {"message": "Welcome to RapidKeys API"}
+
 
 if __name__ == "__main__":
     uvicorn.run(
