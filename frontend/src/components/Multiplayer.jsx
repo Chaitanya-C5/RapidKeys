@@ -11,9 +11,10 @@ const Multiplayer = () => {
   const [users, setUsers] = useState([])
   const [roomSettings, setRoomSettings] = useState({})
   const [raceStarted, setRaceStarted] = useState(false)
+  const [hostId, setHostId] = useState(null)
   const chatEndRef = useRef(null)
   const wsRef = useRef(null)
-
+  const currentUserId = JSON.parse(localStorage.getItem("userData")).id
   const { roomCode } = useParams()
 
   // Auto-scroll chat to bottom
@@ -33,8 +34,9 @@ const Multiplayer = () => {
             const room = data.room || {}
             setUsers(Object.values(room.users || {}))
             setRoomSettings(room.settings || {})
-            setRaceStarted(!!room.race_started)
+            setRaceStarted(room.race_started)
             setChatMessages((room.messages || []).map((m, idx) => ({ id: idx + 1, ...m })))
+            setHostId(room.creator_id)
             break
           }
           case 'user_joined': {
@@ -51,7 +53,6 @@ const Multiplayer = () => {
             setChatMessages((prev) => [...prev, { id: prev.length + 1, ...msg }])
             break
           }
-          case 'ready_toggled':
           case 'typing_progress':
           case 'race_started': {
             // extend later as needed
@@ -129,12 +130,16 @@ const Multiplayer = () => {
           </div>
         </div>
         
-        <button
-          onClick={handleStartRace}
-          className="px-3 py-1 custom-bgcolor hover:bg-opacity-80 text-black font-semibold rounded-md transition text-sm"
-        >
-          Start Race
-        </button>
+        {hostId === currentUserId ? (
+          <button
+            onClick={handleStartRace}
+            className="px-3 py-1 custom-bgcolor hover:bg-opacity-80 text-black font-semibold rounded-md transition text-sm cursor-pointer"
+          >
+            Start Race
+          </button>
+        ) : (
+          <p className="text-gray-400">{raceStarted ? "Race has started" : "Waiting for host to start race"}</p>
+        )}
       </div>
 
       {/* Main Content - Flexible height */}

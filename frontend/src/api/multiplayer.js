@@ -123,12 +123,6 @@ export const sendChatMessage = (wsConnection, message) => {
   });
 };
 
-export const toggleReady = (wsConnection) => {
-  wsConnection?.send({
-    type: "toggle_ready"
-  });
-};
-
 export const startRace = (wsConnection) => {
   wsConnection?.send({
     type: "start_race"
@@ -149,7 +143,6 @@ export default {
   getActiveRooms,
   connectToRoom,
   sendChatMessage,
-  toggleReady,
   startRace,
   sendTypingProgress,
 };

@@ -36,7 +36,6 @@ class ConnectionManager:
             "id": user_id,
             "username": username,
             "joined_at": datetime.now().isoformat(),
-            "ready": False,
             "wpm": 0,
             "accuracy": 0,
             "progress": 0,
@@ -155,22 +154,6 @@ class ConnectionManager:
                 "wpm": wpm
             })
 
-    async def handle_toggle_ready(self, room_code: str, user_id: str):
-        room_data = await redis_manager.get_room(room_code)
-        if not room_data or user_id not in room_data["users"]:
-            return
-        
-        current_ready = room_data["users"][user_id]["ready"]
-        updated_room_data = await redis_manager.update_user_ready_status(room_code, user_id, not current_ready)
-        
-        if updated_room_data:
-            await self.broadcast_to_room(room_code, {
-                "type": "user_ready_changed",
-                "user_id": user_id,
-                "ready": not current_ready,
-                "room_users": list(updated_room_data["users"].values())
-            })
-
 manager = ConnectionManager()
 
 def verify_token(token: str, db):
@@ -206,7 +189,6 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
     # Verify user authentication
     with SessionLocal() as db:
         user = verify_token(token, db)
-    print(user)
     if not user:
         await websocket.close(code=1008, reason="Invalid token")
         return
@@ -233,9 +215,6 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                 progress = message.get("progress", 0)
                 wpm = message.get("wpm", 0)
                 await manager.handle_typing_progress(room_code, user_id, progress, wpm)
-            
-            elif message_type == "toggle_ready":
-                await manager.handle_toggle_ready(room_code, user_id)
     
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -248,11 +227,10 @@ async def create_room(settings: dict, token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid token")
     
     room_code = await generate_room_code()
-    print(settings)
     # Create room with provided settings
     room_data = {
         "code": room_code,
-        "creator_id": str(user.id),  # Store the room creator's ID
+        "creator_id": str(user.id),
         "users": {},
         "messages": [],
         "created_at": datetime.now().isoformat(),
