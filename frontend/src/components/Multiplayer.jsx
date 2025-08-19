@@ -1,115 +1,58 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Copy, Send, Users, MessageSquare } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { getRoomInfo, connectToRoom, sendChatMessage } from '../api/multiplayer'
+import { useWebSocket } from '../contexts/WebSocketContext'  // ✅ Import the context
 
 const Multiplayer = () => {
-  const [wordCount] = useState(25)
   const [copied, setCopied] = useState(false)
-  const [chatMessages, setChatMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
-  const [users, setUsers] = useState([])
-  const [roomSettings, setRoomSettings] = useState({})
-  const [raceStarted, setRaceStarted] = useState(false)
-  const [hostId, setHostId] = useState(null)
   const chatEndRef = useRef(null)
-  const wsRef = useRef(null)
-  const currentUserId = JSON.parse(localStorage.getItem("userData")).id
-  const { roomCode } = useParams()
 
-  // Auto-scroll chat to bottom
+  const { roomCode } = useParams()
+  const currentUserId = JSON.parse(localStorage.getItem("userData")).id
+
+  // ✅ Pull everything from WebSocketContext
+  const {
+    users,
+    chatMessages,
+    roomSettings,
+    raceStarted,
+    hostId, 
+    sendMessage,
+    beginRace,
+    updateTypingProgress,
+  } = useWebSocket()
+
+  // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
 
-
-  // WebSocket connection
-  useEffect(() => {
-    if (!roomCode) return
-
-    const wsConnection = connectToRoom(roomCode, {
-      onMessage: (data) => {
-        switch (data.type) {
-          case 'room_joined': {
-            const room = data.room || {}
-            setUsers(Object.values(room.users || {}))
-            setRoomSettings(room.settings || {})
-            setRaceStarted(room.race_started)
-            setChatMessages((room.messages || []).map((m, idx) => ({ id: idx + 1, ...m })))
-            setHostId(room.creator_id)
-            break
-          }
-          case 'user_joined': {
-            if (Array.isArray(data.room_users)) setUsers(data.room_users)
-            break
-          }
-          case 'user_left': {
-            if (Array.isArray(data.room_users)) setUsers(data.room_users)
-            break
-          }
-          case 'chat_message': {
-            const msg = data.message || data
-            //msg.timestamp = new Date(msg.timestamp);
-            setChatMessages((prev) => [...prev, { id: prev.length + 1, ...msg }])
-            break
-          }
-          case 'typing_progress':
-          case 'race_started': {
-            // extend later as needed
-            break
-          }
-          default:
-            break
-        }
-      },
-      onOpen: () => {
-        console.log('Connected to room:', roomCode)
-      },
-      onClose: () => {
-        console.log('Disconnected from room:', roomCode)
-      },
-      onError: (error) => {
-        console.error('WebSocket error in room:', roomCode, error)
-      }
-    })
-
-    if (wsConnection) {
-      wsRef.current = wsConnection
-    }
-
-    return () => {
-      wsConnection?.close()
-      wsRef.current = null
-    }
-  }, [roomCode])
-
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode)
     setCopied(true)
-    setTimeout(() => {
-      setCopied(false)
-    }, 2000)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const handleSendMessage = (e) => {
     e.preventDefault()
+    console.log('Sending message:', newMessage)
     if (!newMessage.trim()) return
-    sendChatMessage(wsRef.current, newMessage.trim())
+    sendMessage(newMessage.trim())  // ✅ use context function
     setNewMessage('')
   }
 
   const handleStartRace = () => {
-    // TODO: Implement race start logic
-    console.log('Starting race...')
+    beginRace(roomCode) // ✅ delegate to context
   }
 
   return (
     <div className="bg-black text-gray-300 custom-font flex flex-col">
-      {/* Header Section - Fixed height */}
+      {/* Header */}
       <div className="flex justify-between items-center py-3 px-12 flex-shrink-0 border-b border-zinc-800">
         <div className="flex items-center gap-2">
           <h1 className="text-lg font-bold text-white">
-            Test Room | T {wordCount} words
+            {roomSettings.name || "Test Room"} | T {roomSettings.wordCount || 25} words
           </h1>
           <div className="flex items-center gap-2 text-xs relative">
             <span className="text-gray-400"># Room Code:</span>
@@ -121,15 +64,14 @@ const Multiplayer = () => {
             >
               <Copy size={16} className="text-gray-400 hover-custom" />
             </button>
-            {/* Copy notification */}
             {copied && (
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-600 text-white px-2 py-1 rounded text-xs whitespace-nowrap z-10 shadow-lg text-white">
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-600 px-2 py-1 rounded text-xs whitespace-nowrap shadow-lg">
                 Copied!
               </div>
             )}
           </div>
         </div>
-        
+
         {hostId === currentUserId ? (
           <button
             onClick={handleStartRace}
@@ -138,22 +80,22 @@ const Multiplayer = () => {
             Start Race
           </button>
         ) : (
-          <p className="text-gray-400">{raceStarted ? "Race has started" : "Waiting for host to start race"}</p>
+          <p className="text-gray-400">
+            {raceStarted ? "Race has started" : "Waiting for host to start race"}
+          </p>
         )}
       </div>
 
-      {/* Main Content - Flexible height */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-250px)] min-h-0 px-8 pb-4 pt-8">
         
-        {/* Chat Section - Takes 3/4 of the space */}
+        {/* Chat Section */}
         <div className="lg:col-span-3 bg-zinc-900 rounded-lg border border-zinc-700 flex flex-col min-h-0">
-          {/* Chat Header */}
           <div className="flex items-center gap-2 p-2 border-b border-zinc-700 flex-shrink-0">
             <MessageSquare size={16} className="custom-color" />
             <h2 className="text-sm font-semibold text-white">Chat</h2>
           </div>
 
-          {/* Messages Area - Scrollable */}
           <div className="flex-1 p-2 overflow-y-auto space-y-1.5 min-h-0">
             {chatMessages.length === 0 ? (
               <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
@@ -164,8 +106,8 @@ const Multiplayer = () => {
               <>
                 {chatMessages.map(msg => (
                   <div key={msg.id} className="flex gap-2">
-                    <div className="w-6 h-6 bg-zinc-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                      {(msg.username || '')[0].toUpperCase()}
+                    <div className="w-6 h-6 bg-zinc-700 rounded-full flex items-center justify-center text-xs font-semibold">
+                      {(msg.username || '')[0]?.toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
@@ -183,7 +125,6 @@ const Multiplayer = () => {
             )}
           </div>
 
-          {/* Message Input - Fixed at bottom */}
           <div className="p-2 border-t border-zinc-700 flex-shrink-0">
             <div className="flex gap-2">
               <input
@@ -205,17 +146,15 @@ const Multiplayer = () => {
           </div>
         </div>
 
-        {/* Typists Section - Takes 1/4 of the space */}
+        {/* Typists Section */}
         <div className="bg-zinc-900 rounded-lg border border-zinc-700 flex flex-col min-h-0">
-          {/* Typists Header */}
           <div className="flex items-center gap-2 p-2 border-b border-zinc-700 flex-shrink-0">
             <Users size={16} className="custom-color" />
             <h2 className="text-sm font-semibold text-white">
               Typists ({users.length})
             </h2>
-          </div>
+          </div>  
 
-          {/* Typists List - Scrollable */}
           <div className="flex-1 p-2 overflow-y-auto min-h-0">
             {users.length === 0 ? (
               <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
@@ -230,7 +169,7 @@ const Multiplayer = () => {
                   return (
                     <div key={user.id || username} className="flex items-center justify-between p-2 rounded bg-zinc-800">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-indigo-600 text-white font-bold`}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-600 text-white font-bold">
                           {avatar}
                         </div>
                         <div>

@@ -10,6 +10,17 @@ import { AuthProvider } from "./contexts/AuthContext"
 import GoogleSuccess from "./pages/GoogleSuccess"
 import RoomEntry from "./components/RoomEntry"
 import Multiplayer from "./components/Multiplayer"
+import { WebSocketProvider } from "./contexts/WebSocketContext"
+import { Outlet, useParams } from "react-router-dom";
+
+function WebSocketWrapper() {
+  const { roomCode } = useParams();
+  return (
+    <WebSocketProvider roomCode={roomCode}>
+      <Outlet />
+    </WebSocketProvider>
+  );
+}
 
 function App() {
   return (
@@ -26,13 +37,13 @@ function App() {
               <Route path='room' element={
                 <ProtectedRoute>
                   <RoomEntry />
-                </ProtectedRoute>
+                </ProtectedRoute> 
               } />
-              <Route path='multiplayer/:roomCode' element={
-                <ProtectedRoute>
-                  <Multiplayer />
-                </ProtectedRoute>
-              } />
+              <Route path="multiplayer/:roomCode" element={<WebSocketWrapper />}>
+                <Route index element={<ProtectedRoute><Multiplayer /></ProtectedRoute>} />
+                <Route path="race" element={<ProtectedRoute><></></ProtectedRoute>} />
+                <Route path="results" element={<ProtectedRoute><></></ProtectedRoute>} />
+              </Route>
             </Route>
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />

@@ -82,7 +82,6 @@ export const connectToRoom = (roomCode, { onMessage, onOpen, onClose, onError },
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      console.log(data)
       onMessage?.(data);
     } catch (err) {
       console.error('Failed to parse WebSocket message:', err);
