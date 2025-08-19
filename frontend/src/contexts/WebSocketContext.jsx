@@ -52,7 +52,7 @@ export const WebSocketProvider = ({ roomCode, children }) => {
                     }
                     case 'typing_progress':
                     case 'race_started': {
-                        // extend later as needed
+                        setRaceStarted(true)
                         break
                     }
                     default:
@@ -85,11 +85,11 @@ export const WebSocketProvider = ({ roomCode, children }) => {
     }
 
     const beginRace = useCallback(() => {
-        startRace(wsConnectionRef.current);
+        startRace(wsRef.current);
     }, []);
     
     const updateTypingProgress = useCallback((progress, wpm, accuracy) => {
-        sendTypingProgress(wsConnectionRef.current, progress, wpm, accuracy);
+        sendTypingProgress(wsRef.current, progress, wpm, accuracy);
     }, []);
 
     return (

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Copy, Send, Users, MessageSquare } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useWebSocket } from '../contexts/WebSocketContext'  // ✅ Import the context
 
 const Multiplayer = () => {
@@ -11,6 +11,8 @@ const Multiplayer = () => {
   const { roomCode } = useParams()
   const currentUserId = JSON.parse(localStorage.getItem("userData")).id
 
+  const navigate = useNavigate()
+
   // ✅ Pull everything from WebSocketContext
   const {
     users,
@@ -20,7 +22,6 @@ const Multiplayer = () => {
     hostId, 
     sendMessage,
     beginRace,
-    updateTypingProgress,
   } = useWebSocket()
 
   // Auto-scroll chat to bottom when new messages arrive
@@ -43,7 +44,8 @@ const Multiplayer = () => {
   }
 
   const handleStartRace = () => {
-    beginRace(roomCode) // ✅ delegate to context
+    beginRace() // ✅ delegate to context
+    navigate('race')
   }
 
   return (

@@ -124,7 +124,7 @@ export const sendChatMessage = (wsConnection, message) => {
 
 export const startRace = (wsConnection) => {
   wsConnection?.send({
-    type: "start_race"
+    type: "start_race",
   });
 };
 
