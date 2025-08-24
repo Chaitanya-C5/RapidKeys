@@ -12,6 +12,7 @@ from app.config.redis_config import redis_manager
 import asyncio
 import random
 import string
+from app.utils.word_generator import generate_words
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
@@ -136,22 +137,30 @@ class ConnectionManager:
         room_data = await redis_manager.get_room(room_code)
         if not room_data or user_id not in room_data["users"]:
             return
+
+        mode = room_data["settings"]["mode"]
+        submode = room_data["settings"]["value"]
+        
+        words = generate_words(mode, submode)
+        await redis_manager.set_words(room_code, words)
         
         start_time = datetime.now().isoformat()
         await redis_manager.start_race(room_code, start_time)
         
         await self.broadcast_to_room(room_code, {
             "type": "race_started",
+            "words": words,
             "start_time": start_time
         })
 
-    async def handle_typing_progress(self, room_code: str, user_id: str, progress: int, wpm: int):
-        if await redis_manager.update_user_progress(room_code, user_id, progress, wpm):
+    async def handle_typing_progress(self, room_code: str, user_id: str, progress: int, wpm: int, accuracy: float):
+        if await redis_manager.update_user_progress(room_code, user_id, progress, wpm, accuracy):
             await self.broadcast_to_room(room_code, {
                 "type": "user_progress",
                 "user_id": user_id,
                 "progress": progress,
-                "wpm": wpm
+                "wpm": wpm,
+                "accuracy": accuracy
             })
 
 manager = ConnectionManager()
@@ -213,8 +222,9 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
             
             elif message_type == "typing_progress":
                 progress = message.get("progress", 0)
-                wpm = message.get("wpm", 0)
-                await manager.handle_typing_progress(room_code, user_id, progress, wpm)
+                wpm = message.get("wpm", 0) 
+                accuracy = message.get("accuracy", 0)
+                await manager.handle_typing_progress(room_code, user_id, progress, wpm, accuracy)
     
     except WebSocketDisconnect:
         manager.disconnect(user_id)
@@ -233,6 +243,7 @@ async def create_room(settings: dict, token: str = Depends(oauth2_scheme)):
         "creator_id": str(user.id),
         "users": {},
         "messages": [],
+        "words": [],
         "created_at": datetime.now().isoformat(),
         "race_started": False,
         "settings": {
@@ -267,6 +278,7 @@ async def get_room_info(room_code: str, token: str = Depends(oauth2_scheme)):
             "user_count": len(room_data["users"]),
             "users": list(room_data["users"].values()),
             "race_started": room_data["race_started"],
+            "words": room_data.get("words", []),
             "created_at": room_data["created_at"],
             "settings": room_data.get("settings", {})
         }
@@ -289,6 +301,7 @@ async def get_active_rooms(token: str = Depends(oauth2_scheme)):
                 "code": room_code,
                 "user_count": len(room_data["users"]),
                 "race_started": room_data["race_started"],
+                "words": room_data.get("words", []),
                 "created_at": room_data["created_at"]
             })
     

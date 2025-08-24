@@ -128,11 +128,12 @@ export const startRace = (wsConnection) => {
   });
 };
 
-export const sendTypingProgress = (wsConnection, progress, wpm) => {
+export const sendTypingProgress = (wsConnection, progress, wpm, accuracy) => {
   wsConnection?.send({
     type: "typing_progress",
     progress,
-    wpm
+    wpm,
+    accuracy
   });
 };
 

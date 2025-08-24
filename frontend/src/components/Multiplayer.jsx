@@ -29,6 +29,13 @@ const Multiplayer = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages])
 
+  useEffect(() => {
+    if (raceStarted) {
+      navigate('race') 
+    }
+  }, [raceStarted, navigate])
+
+
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode)
     setCopied(true)
@@ -45,7 +52,6 @@ const Multiplayer = () => {
 
   const handleStartRace = () => {
     beginRace() // ✅ delegate to context
-    navigate('race')
   }
 
   return (

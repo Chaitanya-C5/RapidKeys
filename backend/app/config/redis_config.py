@@ -116,12 +116,13 @@ class RedisManager:
             return await self.update_room(room_code, room_data)
         return False
 
-    async def update_user_progress(self, room_code: str, user_id: str, progress: int, wpm: int) -> bool:
+    async def update_user_progress(self, room_code: str, user_id: str, progress: int, wpm: int, accuracy: float) -> bool:
         """Update user's typing progress"""
         room_data = await self.get_room(room_code)
         if room_data and user_id in room_data["users"]:
             room_data["users"][user_id]["progress"] = progress
             room_data["users"][user_id]["wpm"] = wpm
+            room_data["users"][user_id]["accuracy"] = accuracy
             return await self.update_room(room_code, room_data)
         return False
 
@@ -143,6 +144,14 @@ class RedisManager:
             return await self.update_room(room_code, room_data)
         return False
 
+    async def set_words(self, room_code: str, words: list[str]) -> bool:
+        """Set words for the room"""
+        room_data = await self.get_room(room_code)
+        if room_data:
+            room_data["words"] = words
+            return await self.update_room(room_code, room_data)
+        return False
+    
     # Connection tracking
     async def track_connection(self, user_id: str, connection_id: str):
         """Track active WebSocket connection"""

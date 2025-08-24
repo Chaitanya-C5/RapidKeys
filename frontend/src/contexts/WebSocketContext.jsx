@@ -19,6 +19,9 @@ export const WebSocketProvider = ({ roomCode, children }) => {
     const [hostId, setHostId] = useState(null) 
     const wsRef = useRef(null)
     const currentUserId = JSON.parse(localStorage.getItem("userData")).id
+    const [words, setWords] = useState([])
+    const [userProgress, setUserProgress] = useState({})
+    const [raceStartTime, setRaceStartTime] = useState(null)
 
     // WebSocket connection
     useEffect(() => {
@@ -50,9 +53,22 @@ export const WebSocketProvider = ({ roomCode, children }) => {
                         setChatMessages((prev) => [...prev, { id: prev.length + 1, ...msg }])
                         break
                     }
-                    case 'typing_progress':
+                    case 'user_progress': {
+                        console.log("user_progress", data)
+                        setUserProgress(prev => ({
+                            ...prev,
+                            [data.user_id]: {
+                                progress: data.progress,
+                                wpm: data.wpm,
+                                accuracy: data.accuracy
+                            }
+                        }))
+                        break
+                    }
                     case 'race_started': {
+                        setWords(data.words)
                         setRaceStarted(true)
+                        setRaceStartTime(data.start_time)
                         break
                     }
                     default:
@@ -88,7 +104,7 @@ export const WebSocketProvider = ({ roomCode, children }) => {
         startRace(wsRef.current);
     }, []);
     
-    const updateTypingProgress = useCallback((progress, wpm, accuracy) => {
+    const updateTypingProgress = useCallback(({ progress, wpm, accuracy }) => {
         sendTypingProgress(wsRef.current, progress, wpm, accuracy);
     }, []);
 
@@ -99,10 +115,13 @@ export const WebSocketProvider = ({ roomCode, children }) => {
             roomSettings,
             raceStarted,
             hostId,
+            words,
+            userProgress,
             wsRef,
             sendMessage,
             beginRace,
-            updateTypingProgress
+            updateTypingProgress,
+            raceStartTime
         }}>
             {children}
         </WebSocketContext.Provider>
