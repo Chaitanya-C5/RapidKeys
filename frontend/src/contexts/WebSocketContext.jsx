@@ -54,15 +54,19 @@ export const WebSocketProvider = ({ roomCode, children }) => {
                         break
                     }
                     case 'user_progress': {
-                        console.log("user_progress", data)
-                        setUserProgress(prev => ({
-                            ...prev,
-                            [data.user_id]: {
-                                progress: data.progress,
-                                wpm: data.wpm,
-                                accuracy: data.accuracy
+                        console.log("user_progress received:", data)
+                        setUserProgress(prev => {
+                            const updated = {
+                                ...prev,
+                                [data.user_id]: {
+                                    progress: data.progress,
+                                    wpm: data.wpm,
+                                    accuracy: data.accuracy
+                                }
                             }
-                        }))
+                            console.log("Updated userProgress:", updated)
+                            return updated
+                        })
                         break
                     }
                     case 'race_started': {
@@ -105,6 +109,8 @@ export const WebSocketProvider = ({ roomCode, children }) => {
     }, []);
     
     const updateTypingProgress = useCallback(({ progress, wpm, accuracy }) => {
+        console.log('updateTypingProgress called with:', { progress, wpm, accuracy });
+        console.log('WebSocket connection status:', wsRef.current?.isOpen());
         sendTypingProgress(wsRef.current, progress, wpm, accuracy);
     }, []);
 

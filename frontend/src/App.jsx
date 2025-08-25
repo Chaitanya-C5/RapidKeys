@@ -13,6 +13,7 @@ import Multiplayer from "./components/Multiplayer"
 import { WebSocketProvider } from "./contexts/WebSocketContext"
 import { Outlet, useParams } from "react-router-dom";
 import Race from "./components/Race";
+import Leaderboard from "./pages/Leaderboard";
 
 function WebSocketWrapper() {
   const { roomCode } = useParams();
@@ -49,6 +50,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/google-success" element={<GoogleSuccess />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
         </Routes>
       </Router>
     </AuthProvider>

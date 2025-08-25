@@ -85,11 +85,17 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
           const minutes = elapsed / 60
           const currentWPM = minutes > 0 ? Math.round((correctCharCount / 5) / minutes) : 0
           
-          updateTypingProgress({
-            wpm: currentWPM,
-            accuracy: Math.round((correctCharCount / (correctCharCount + incorrectCharCount)) * 100) || 100,
-            progress: Math.round((currentWordIndex / words.length) * 100),
-          })
+          if (updateTypingProgress) {
+            updateTypingProgress({
+              wpm: currentWPM,
+              accuracy: Math.round((correctCharCount / (correctCharCount + incorrectCharCount)) * 100) || 100,
+              progress: Math.round((currentWordIndex / words.length) * 100),
+            })
+            
+            
+          } else {
+            console.log('updateTypingProgress function does not exist')
+          }
           
           setChartData(prev => {
             const timePoint = Math.floor(elapsed)
@@ -580,20 +586,6 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
               </TooltipProvider>
             </div>
           </div>
-
-          {/* Type Again Button */}
-          <div className="text-center mt-8 flex justify-center w-full">
-              <button
-                onClick={() => {
-                  resetTest()
-                  generateInitialWords()
-                }}
-                className="cursor-pointer px-8 py-2 custom-bgcolor text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex gap-2"
-              >
-                <RotateCcw className="mt-1 w-5 h-5 text-white" />
-                Type Again
-              </button>
-            </div>
         </div>
       )}
 

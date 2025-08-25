@@ -129,12 +129,15 @@ export const startRace = (wsConnection) => {
 };
 
 export const sendTypingProgress = (wsConnection, progress, wpm, accuracy) => {
+  console.log('sendTypingProgress called:', { progress, wpm, accuracy });
+  console.log('wsConnection:', wsConnection);
   wsConnection?.send({
     type: "typing_progress",
     progress,
     wpm,
     accuracy
   });
+  console.log('Message sent to WebSocket');
 };
 
 export default {

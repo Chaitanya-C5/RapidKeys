@@ -54,7 +54,7 @@ function Header() {
           <Crown className="text-gray-400" />
           <button 
             className='cursor-pointer hover:text-white transition' 
-            onClick={() => navigate("/")}>
+            onClick={() => navigate("/leaderboard")}>
               Leaderboard
           </button>
         </div>
