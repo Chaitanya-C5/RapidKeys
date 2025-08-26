@@ -14,6 +14,7 @@ import { WebSocketProvider } from "./contexts/WebSocketContext"
 import { Outlet, useParams } from "react-router-dom";
 import Race from "./components/Race";
 import Leaderboard from "./pages/Leaderboard";
+import Results from "./components/Results";
 
 function WebSocketWrapper() {
   const { roomCode } = useParams();
@@ -44,7 +45,7 @@ function App() {
               <Route path="multiplayer/:roomCode" element={<WebSocketWrapper />}>
                 <Route index element={<ProtectedRoute><Multiplayer /></ProtectedRoute>} />
                 <Route path="race" element={<ProtectedRoute><Race /></ProtectedRoute>} />
-                <Route path="results" element={<ProtectedRoute><></></ProtectedRoute>} />
+                <Route path="results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
               </Route>
             </Route>
             <Route path="/signup" element={<Signup />} />

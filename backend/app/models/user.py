@@ -19,12 +19,29 @@ class User(BaseModel):
     password: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    best_wpm: Optional[int] = 0
+    best_accuracy: Optional[float] = 0.0
+    total_games: Optional[int] = 0
+    average_wpm: Optional[float] = 0.0
+    average_accuracy: Optional[float] = 0.0
 
 class UserResponse(BaseModel):
     id: str
     username: str
     email: str
     created_at: datetime
+    best_wpm: Optional[int] = 0
+    best_accuracy: Optional[float] = 0.0
+    total_games: Optional[int] = 0
+    average_wpm: Optional[float] = 0.0
+    average_accuracy: Optional[float] = 0.0
+
+class UserStatsUpdate(BaseModel):
+    wpm: int
+    accuracy: float
+    mode: str  # "time" or "words"
+    duration: Optional[int] = None
+    word_count: Optional[int] = None
 
 class AuthResponse(BaseModel):
     success: bool
@@ -35,5 +52,3 @@ class AuthResponse(BaseModel):
 class UsernameCheckResponse(BaseModel):
     available: bool
     message: str
-
-

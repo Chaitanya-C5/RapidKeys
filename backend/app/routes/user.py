@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Body, Depends
-from app.models.user import UserCreate, UserLogin
+from app.models.user import UserCreate, UserLogin, UserStatsUpdate
 from app.models.sqlalchemy_user import User
 from app.utils.db_conn import db_dependency
 import os
@@ -12,7 +12,6 @@ import jwt
 from app.utils.hasher import get_password_hash, verify_password
 import os
 from fastapi.security import OAuth2PasswordBearer  
-
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")  
 
@@ -134,3 +133,44 @@ def login(db: db_dependency, user: UserLogin = Body(...)):
     new_user = { "id": user_in_db.id, "username": user_in_db.username, "email": user_in_db.email, "auth_provider": "credentials" }
 
     return {"success": True, "token": token, "user": new_user}
+
+@router.post("/update-stats")
+def update_stats(db: db_dependency, stats: UserStatsUpdate = Body(...), token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
+        user = db.query(User).filter(User.id == payload["sub"]).first()
+        
+        if not user:
+            return {"success": False, "error": "User not found"}
+        
+        # Update best scores
+        if stats.wpm > (user.best_wpm or 0):
+            user.best_wpm = stats.wpm
+        
+        if stats.accuracy > (user.best_accuracy or 0.0):
+            user.best_accuracy = stats.accuracy
+        
+        # Update total games
+        user.total_games = (user.total_games or 0) + 1
+        
+        # Calculate new averages
+        current_total_wpm = (user.average_wpm or 0.0) * ((user.total_games or 1) - 1)
+        user.average_wpm = (current_total_wpm + stats.wpm) / user.total_games
+        
+        current_total_accuracy = (user.average_accuracy or 0.0) * ((user.total_games or 1) - 1)
+        user.average_accuracy = (current_total_accuracy + stats.accuracy) / user.total_games
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "stats": {
+                "best_wpm": user.best_wpm,
+                "best_accuracy": user.best_accuracy,
+                "total_games": user.total_games,
+                "average_wpm": round(user.average_wpm, 2),
+                "average_accuracy": round(user.average_accuracy, 2)
+            }
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}

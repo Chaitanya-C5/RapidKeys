@@ -3,6 +3,7 @@ import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombine
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { COMMON_WORDS } from "../lib/utils"
 import { Tooltip as ShadcnTooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { updateUserStats } from "../api/authService.js"
 
 function Type() {
   const [mode, setMode] = useState("words")
@@ -91,7 +92,7 @@ function Type() {
             
             // Only add new data points, don't update existing ones
             const existingIndex = prev.findIndex(point => point.time === timePoint)
-            if (existingIndex === -1 && currentWPM > 0) {
+            if (existingIndex === -1) {
               return [...prev, { time: timePoint, wpm: currentWPM }]
             }
             
@@ -404,6 +405,28 @@ function Type() {
       tooltip: `${Math.round(elapsedTime)} seconds`
     }
   ]
+
+  useEffect(() => {
+    if (testCompleted) {
+      const statsData = {
+        wpm: Math.round(wpm),
+        accuracy: Math.round(accuracy),
+        mode,
+        duration: mode === "time" ? timeCount : null,
+        word_count: mode === "words" ? wordCount : null
+      }
+      
+      updateUserStats(statsData)
+        .then(response => {
+          if (response.success) {
+            console.log('Stats updated successfully:', response.stats)
+          }
+        })
+        .catch(error => {
+          console.error('Failed to update stats:', error)
+        })
+    }
+  }, [testCompleted, wpm, accuracy, mode, timeCount, wordCount])
 
   return (
     <div className="w-full flex flex-col items-center">

@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef } from "react"
-import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombined } from "lucide-react"
+import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombined, Trophy } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { COMMON_WORDS } from "../lib/utils"
 import { Tooltip as ShadcnTooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { useWebSocket } from "../contexts/WebSocketContext"
+import { useNavigate, useLocation } from "react-router-dom"
 
 function RacingType({ showModeOptions = true, text = [], givenMode = "words", givenWordCount = 10, givenTimeCount = 15 }) {
   const [mode, setMode] = useState(givenMode)
-  const wordOptions = [10, 25, 50]
-  const timeOptions = [15, 30, 60]
   const [wordCount, setWordCount] = useState(givenWordCount)
   const [timeCount, setTimeCount] = useState(givenTimeCount)
-  const { updateTypingProgress, raceStartTime } = useWebSocket()
+  const { updateTypingProgress, raceStartTime, sendNotification } = useWebSocket()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const roomCode = location.pathname.split('/')[2]
+  console.log(roomCode)
 
   // Typing words state   
   const [words, setWords] = useState(text)
@@ -102,7 +106,7 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
             
             // Only add new data points, don't update existing ones
             const existingIndex = prev.findIndex(point => point.time === timePoint)
-            if (existingIndex === -1 && currentWPM > 0) {
+            if (existingIndex === -1) {
               return [...prev, { time: timePoint, wpm: currentWPM }]
             }
             
@@ -153,6 +157,17 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
   useEffect(() => {
     if (mode === "time" && elapsedTime >= timeCount && !testCompleted) {
       setTestCompleted(true)
+
+      sendNotification({
+        type: 'race_completed',
+        data: {
+          mode,
+          finalWpm: wpm,
+          finalAccuracy: accuracy,
+          completionTime: elapsedTime,
+          wordsCompleted: currentWordIndex
+        }
+      })
     }
   }, [mode, elapsedTime, timeCount, testCompleted])
 
@@ -410,58 +425,22 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
     }
   ]
 
+  useEffect(() => {
+    if (testCompleted) {
+      sendNotification({
+        type: 'raceCompleted',
+        data: {
+          mode,
+          wpm,
+          accuracy,
+          elapsedTime,
+        },
+      })
+    }
+  }, [testCompleted, mode, wpm, accuracy, elapsedTime, sendNotification])
+
   return (
     <div className="w-full flex flex-col items-center">
-      {/* Header options: time/words */}
-      {showModeOptions && (
-        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mb-8">
-          <div className="flex gap-4 sm:gap-8 justify-center">
-            <button
-              className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "time" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
-              onClick={() => setMode("time")}
-          >
-            <Hourglass className="" size={24} />
-            <span className="text-md mt-1">time</span>
-          </button>
-
-          <button
-            className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "words" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
-            onClick={() => setMode("words")}
-          >
-            <TypeOutline className="" size={24} />
-            <span className="text-md mt-1">words</span>
-          </button>
-        </div>
-
-        <div className="hidden sm:block w-px h-10 bg-gray-600 mx-4"></div>
-
-        <div className="flex gap-2 items-center justify-center">
-          {mode === "words" && wordOptions.map(opt => (
-            <button
-              key={opt}
-              className={`px-3 py-1 rounded text-sm transition-colors ${wordCount === opt ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
-              onClick={() => setWordCount(opt)}
-            >
-              {opt}
-            </button>
-          ))}
-          
-          {mode === "time" && timeOptions.map(opt => (
-            <button
-              key={opt}
-              className={`px-3 py-1 rounded text-sm transition-colors ${timeCount === opt ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
-              onClick={() => setTimeCount(opt)}
-            >
-              {opt}
-            </button>
-          ))}
-          <span className="ml-2 text-xs text-gray-400 select-none">
-            {mode === "words" ? "words" : "seconds"}
-          </span>
-        </div>
-      </div>
-      )}
-
       {/* Typing section: display only current 4 lines - hide when test completed */}
       {!testCompleted && (
         <div
@@ -585,6 +564,21 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
                 ))}
               </TooltipProvider>
             </div>
+          </div>
+          
+          {/* Leaderboard Button */}
+          <div className="flex justify-center mt-8">
+            <button 
+              className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors"
+              onClick={() => navigate('/multiplayer/' + roomCode + '/results')}
+            >
+              <Trophy className="w-5 h-5" />
+              View Leaderboard
+            </button>
+          </div>
+          
+          <div className="text-lg text-center mt-4 text-green-400">
+            🎉 Race Completed! Great job!
           </div>
         </div>
       )}

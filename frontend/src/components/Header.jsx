@@ -1,12 +1,15 @@
 import { Zap, Keyboard, Swords, Crown, User } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
   
 function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { isAuthenticated, user, logout } = useAuth()
+  const [showHeader, setShowHeader] = useState(true)
 
+  
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -19,6 +22,14 @@ function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    setShowHeader(!location.pathname.includes('/results'))
+  }, [location.pathname])
+
+  if (!showHeader) {
+    return null
+  }
 
   return (
     <div className="text-gray-300 font-mono bg-black w-full flex flex-col sm:flex-row justify-between items-center px-4 text-lg py-12 sm:mb-4">

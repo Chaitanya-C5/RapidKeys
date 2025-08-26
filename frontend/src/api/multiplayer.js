@@ -140,6 +140,18 @@ export const sendTypingProgress = (wsConnection, progress, wpm, accuracy) => {
   console.log('Message sent to WebSocket');
 };
 
+export const sendNotification = (ws, message) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    console.log("Sending notification:", message);
+    ws.send(JSON.stringify({
+      type: "notification",
+      ...message
+    }));
+  } else {
+    console.log("WebSocket not connected, cannot send notification");
+  }
+};
+
 export default {
   createRoom,
   getRoomInfo,
@@ -148,4 +160,5 @@ export default {
   sendChatMessage,
   startRace,
   sendTypingProgress,
+  sendNotification,
 };

@@ -13,7 +13,6 @@ import asyncio
 import random
 import string
 from app.utils.word_generator import generate_words
-
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 

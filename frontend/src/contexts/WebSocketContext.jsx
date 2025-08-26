@@ -4,6 +4,7 @@ import {
   sendChatMessage,
   startRace,
   sendTypingProgress,
+  sendNotification as sendNotificationAPI,
 } from "../api/multiplayer.js";
 
 const WebSocketContext = createContext(null);
@@ -114,6 +115,10 @@ export const WebSocketProvider = ({ roomCode, children }) => {
         sendTypingProgress(wsRef.current, progress, wpm, accuracy);
     }, []);
 
+    const sendNotification = useCallback((message) => {
+        sendNotificationAPI(wsRef.current, message);
+    }, []);
+
     return (
         <WebSocketContext.Provider value={{
             users,
@@ -127,6 +132,7 @@ export const WebSocketProvider = ({ roomCode, children }) => {
             sendMessage,
             beginRace,
             updateTypingProgress,
+            sendNotification,
             raceStartTime
         }}>
             {children}

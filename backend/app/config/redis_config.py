@@ -107,6 +107,21 @@ class RedisManager:
         """Get the room code the user is currently in"""
         return await self.redis_client.get(f"user_room:{user_id}")
 
+    # User data management
+    async def update_user_in_room(self, room_code: str, user_id: str, user_data: dict) -> bool:
+        """Update specific user data in a room"""
+        try:
+            room_key = f"room:{room_code}"
+            user_key = f"users.{user_id}"
+            
+            # Update the user data in the room
+            await self.redis_client.hset(room_key, user_key, json.dumps(user_data))
+            print(f"Updated user {user_id} in room {room_code}: {user_data}")
+            return True
+        except Exception as e:
+            print(f"Error updating user in room: {e}")
+            return False
+
     # Chat management
     async def add_message_to_room(self, room_code: str, message: Dict[str, Any]) -> bool:
         """Add a chat message to room"""
