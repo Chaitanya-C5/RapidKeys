@@ -111,11 +111,25 @@ def get_profile(db: db_dependency, token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
         user = db.query(User).filter(User.id == payload["sub"]).first()
-        user = {"id": user.id, "username": user.username, "email": user.email, "auth_provider": user.auth_provider}
-        return {"success": True, "user": user, "token": token}  
+        
+        if not user:
+            return {"success": False, "error": "User not found"}
+        
+        user_data = {
+            "id": user.id, 
+            "username": user.username, 
+            "email": user.email, 
+            "auth_provider": user.auth_provider,
+            "best_wpm": user.best_wpm or 0,
+            "best_accuracy": user.best_accuracy or 0.0,
+            "total_games": user.total_games or 0,
+            "average_wpm": user.average_wpm or 0.0,
+            "average_accuracy": user.average_accuracy or 0.0,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }
+        return {"success": True, "user": user_data, "token": token}  
     except Exception as e:
-        return {"success": False, "error": str(e)}  
-
+        return {"success": False, "error": str(e)}
 
 @router.post("/login")
 def login(db: db_dependency, user: UserLogin = Body(...)):

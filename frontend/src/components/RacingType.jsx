@@ -6,7 +6,7 @@ import { Tooltip as ShadcnTooltip, TooltipContent, TooltipTrigger, TooltipProvid
 import { useWebSocket } from "../contexts/WebSocketContext"
 import { useNavigate, useLocation } from "react-router-dom"
 
-function RacingType({ showModeOptions = true, text = [], givenMode = "words", givenWordCount = 10, givenTimeCount = 15 }) {
+function RacingType({ text = [], givenMode = "words", givenWordCount = 10, givenTimeCount = 15 }) {
   const [mode, setMode] = useState(givenMode)
   const [wordCount, setWordCount] = useState(givenWordCount)
   const [timeCount, setTimeCount] = useState(givenTimeCount)
@@ -37,25 +37,6 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
   // Ref to track if this is initial word generation or appending
   const isAppendingWords = useRef(false)
 
-  // Helper to get random words
-  const getRandomWords = (count) => {
-    const arr = []
-    for (let i = 0; i < count; i++) {
-      arr.push(COMMON_WORDS[Math.floor(Math.random() * COMMON_WORDS.length)])
-    }
-    return arr
-  }
-
-  // Generate initial words when component mounts or mode/settings change
-  const generateInitialWords = () => {
-    isAppendingWords.current = false
-    if (mode === "words") {
-      setWords(getRandomWords(wordCount))
-    } else {
-      setWords(getRandomWords(100))
-    }
-  }
-
   // Reset all state for a fresh test
   const resetTest = () => {
     setElapsedTime(0)
@@ -70,7 +51,6 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
 
   // Regenerate words when mode or option changes
   useEffect(() => {
-    if(showModeOptions) generateInitialWords()
     resetTest() // Always reset state when mode changes
   }, [mode, wordCount, timeCount])
 

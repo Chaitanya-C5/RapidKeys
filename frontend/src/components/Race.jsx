@@ -45,7 +45,7 @@ const Race = () => {
         <div className='flex gap-6 h-screen p-4'>
             {/* Main Typing Section - Takes most width */}
             <div className="flex-1 min-w-0">
-                <RacingType showModeOptions={false} text={words} givenMode={mode} givenWordCount={value} givenTimeCount={value}/>
+                <RacingType text={words} givenMode={mode} givenWordCount={value} givenTimeCount={value}/>
             </div>
             
             {/* Enhanced Typists Section - Fixed width on right */}

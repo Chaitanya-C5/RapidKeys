@@ -69,7 +69,6 @@ function Header() {
               Leaderboard
           </button>
         </div>
-
       </div>
 
       {/* Authentication Section - Right Side */}
@@ -88,16 +87,16 @@ function Header() {
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-40 bg-zinc-900 border border-zinc-700 rounded-md shadow-lg z-50">
                   <button
-                    className="block w-full px-4 py-2 text-left hover:bg-zinc-800 transition"
+                    className="cursor-pointer block w-full px-4 py-2 text-left hover:bg-zinc-800 transition"
                     onClick={() => {
                       setDropdownOpen(false);
-                      navigate("/profile");
+                      navigate("profile");
                     }}
                   >
                     Profile
                   </button>
                   <button
-                    className="block w-full px-4 py-2 text-left text-red-400 hover:bg-zinc-800 transition"
+                    className="cursor-pointer block w-full px-4 py-2 text-left text-red-400 hover:bg-zinc-800 transition"
                     onClick={() => {
                       setDropdownOpen(false);
                       logout();

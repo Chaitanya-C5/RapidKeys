@@ -15,6 +15,7 @@ import { Outlet, useParams } from "react-router-dom";
 import Race from "./components/Race";
 import Leaderboard from "./pages/Leaderboard";
 import Results from "./components/Results";
+import Profile from "./pages/Profile";
 
 function WebSocketWrapper() {
   const { roomCode } = useParams();
@@ -48,6 +49,7 @@ function App() {
                 <Route path="results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
               </Route>
             </Route>
+            <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/google-success" element={<GoogleSuccess />} />

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, Float
+from sqlalchemy import Column, String, Integer, Float, DateTime
+from sqlalchemy.sql import func
 from app.config.db import Base
 
 class User(Base):
@@ -14,3 +15,4 @@ class User(Base):
     total_games = Column(Integer, nullable=True, default=0)
     average_wpm = Column(Float, nullable=True, default=0.0)
     average_accuracy = Column(Float, nullable=True, default=0.0)
+    created_at = Column(DateTime, nullable=False, default=func.now())
