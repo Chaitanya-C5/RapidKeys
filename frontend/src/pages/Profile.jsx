@@ -94,7 +94,7 @@ function Profile() {
         <div className="mb-6">
           <button 
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors group"
+            className="cursor-pointer flex items-center gap-2 text-zinc-400 hover:text-white transition-colors group"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-bold">Back</span>
@@ -127,16 +127,17 @@ function Profile() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Statistics */}
-          <div className="lg:col-span-2">
-            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column */}
+          <div className="space-y-8">
+            {/* Statistics */}
+            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
               <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-blue-400" />
                 Typing Statistics
               </h2>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-green-400 mb-2">
                     {profileData?.best_wpm || 0}
@@ -167,22 +168,6 @@ function Profile() {
               </div>
             </div>
 
-            {/* Progress Chart Placeholder */}
-            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-green-400" />
-                Progress Overview
-              </h3>
-              <div className="text-center py-12 text-zinc-500">
-                <Clock className="w-16 h-16 mx-auto mb-4 text-zinc-600" />
-                <p>Progress tracking coming soon!</p>
-                <p className="text-sm mt-2">Complete more typing tests to see your improvement over time</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Achievements & Actions */}
-          <div className="space-y-8">
             {/* Achievements */}
             <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -209,6 +194,32 @@ function Profile() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-8">
+            {/* Performance Insights */}
+            <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
+              <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-400" />
+                Performance Insights
+              </h4>
+              <div className="p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/30 rounded-lg">
+                <div className="text-sm text-zinc-300">
+                  {profileData?.total_games === 0 ? (
+                    "🎯 Ready to start your typing journey? Complete your first test to see personalized insights!"
+                  ) : profileData?.best_wpm >= 80 ? (
+                    "🚀 Excellent typing speed! You're in the top tier of typists. Focus on maintaining accuracy at high speeds."
+                  ) : profileData?.best_wpm >= 60 ? (
+                    "⚡ Great progress! You're above average. Try to push for 80+ WPM while maintaining accuracy."
+                  ) : profileData?.best_wpm >= 40 ? (
+                    "📈 Good foundation! Keep practicing to reach 60+ WPM. Focus on finger positioning and rhythm."
+                  ) : (
+                    "🌱 Every expert was once a beginner! Practice regularly to build muscle memory and speed."
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Quick Actions */}
