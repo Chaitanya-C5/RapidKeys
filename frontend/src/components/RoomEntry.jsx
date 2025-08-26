@@ -134,7 +134,7 @@ const RoomEntry = () => {
                   <div
                     key={mode.id}
                     onClick={() => setSelectedMode(mode.id)}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.02] flex-1 ${
+                    className={`cursor-pointer p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:scale-[1.02] flex-1 ${
                       selectedMode === mode.id
                         ? 'border-green-500 bg-green-500/10 shadow-lg shadow-green-500/20'
                         : 'border-zinc-700 hover:border-zinc-600 bg-zinc-900/50 hover:bg-zinc-900'
@@ -167,7 +167,7 @@ const RoomEntry = () => {
                   <button
                     key={option}
                     onClick={() => handleOptionChange(option)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 min-w-[80px] ${
+                    className={`cursor-pointer px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 hover:scale-105 min-w-[80px] ${
                       getCurrentValue() === option
                         ? 'bg-green-500 text-black shadow-lg shadow-green-500/30'
                         : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700 border border-zinc-700'

@@ -434,7 +434,7 @@ function Type() {
       <div className="flex flex-col sm:flex-row gap-4 w-full justify-center mb-8">
         <div className="flex gap-4 sm:gap-8 justify-center">
           <button
-            className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "time" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
+            className={`cursor-pointer flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "time" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
             onClick={() => setMode("time")}
           >
             <Hourglass className="" size={24} />
@@ -442,7 +442,7 @@ function Type() {
           </button>
 
           <button
-            className={`flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "words" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
+            className={`cursor-pointer flex gap-1 items-center px-2 py-2 rounded transition-colors ${mode === "words" ? "bg-gray-700 text-white" : "bg-transparent text-gray-400 hover:bg-gray-800"}`}
             onClick={() => setMode("words")}
           >
             <TypeOutline className="" size={24} />
@@ -456,7 +456,7 @@ function Type() {
           {mode === "words" && wordOptions.map(opt => (
             <button
               key={opt}
-              className={`px-3 py-1 rounded text-sm transition-colors ${wordCount === opt ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
+              className={`cursor-pointer px-3 py-1 rounded text-sm transition-colors ${wordCount === opt ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
               onClick={() => setWordCount(opt)}
             >
               {opt}
@@ -466,7 +466,7 @@ function Type() {
           {mode === "time" && timeOptions.map(opt => (
             <button
               key={opt}
-              className={`px-3 py-1 rounded text-sm transition-colors ${timeCount === opt ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
+              className={`cursor-pointer px-3 py-1 rounded text-sm transition-colors ${timeCount === opt ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"}`}
               onClick={() => setTimeCount(opt)}
             >
               {opt}

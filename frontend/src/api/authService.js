@@ -25,3 +25,14 @@ export const updateUserStats = async (statsData) => {
     throw error
   }
 }
+
+export const getLeaderboard = async (limit = 50) => {
+  try {
+    const token = localStorage.getItem("authToken")
+    const response = await axiosClient.get(`/leaderboard?limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } })
+    return response.data
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error)
+    throw error
+  }
+}

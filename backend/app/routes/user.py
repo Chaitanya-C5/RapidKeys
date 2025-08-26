@@ -174,3 +174,34 @@ def update_stats(db: db_dependency, stats: UserStatsUpdate = Body(...), token: s
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@router.get("/leaderboard")
+def get_leaderboard(db: db_dependency, limit: int = 50):
+    try:
+        # Fetch users sorted by best_wpm descending, then by best_accuracy descending
+        users = db.query(User).filter(
+            User.best_wpm.isnot(None),
+            User.best_wpm > 0
+        ).order_by(
+            User.best_wpm.desc(),
+            User.best_accuracy.desc()
+        ).limit(limit).all()
+        
+        leaderboard_data = []
+        for index, user in enumerate(users, 1):
+            leaderboard_data.append({
+                "position": index,
+                "username": user.username,
+                "wpm": user.best_wpm or 0,
+                "accuracy": round(user.best_accuracy or 0, 1),
+                "total_games": user.total_games or 0
+            })
+        
+        return {
+            "success": True,
+            "leaderboard": leaderboard_data,
+            "total_users": len(leaderboard_data)
+        }
+    except Exception as e:
+        print(f"Leaderboard error: {e}")
+        return {"success": False, "error": str(e)}

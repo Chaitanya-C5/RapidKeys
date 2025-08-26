@@ -15,7 +15,6 @@ function RacingType({ showModeOptions = true, text = [], givenMode = "words", gi
   const location = useLocation()
 
   const roomCode = location.pathname.split('/')[2]
-  console.log(roomCode)
 
   // Typing words state   
   const [words, setWords] = useState(text)
