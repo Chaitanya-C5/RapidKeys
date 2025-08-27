@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Clock, Hash, Plus, LogIn, Loader2, Settings } from 'lucide-react'
 import { createRoom, getRoomInfo } from '../api/multiplayer'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const RoomEntry = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  
   // Game mode and settings state
   const [selectedMode, setSelectedMode] = useState('time')
   const [selectedDuration, setSelectedDuration] = useState(60)
@@ -15,6 +17,15 @@ const RoomEntry = () => {
   const [isCreating, setIsCreating] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState('')
+
+  // Handle WebSocket connection errors from navigation state
+  useEffect(() => {
+    if (location.state?.error) {
+      setError(location.state.error)
+      // Clear the navigation state to prevent showing error on refresh
+      navigate(location.pathname, { replace: true })
+    }
+  }, [location.state, navigate, location.pathname])
 
   // Game modes configuration
   const gameModes = [

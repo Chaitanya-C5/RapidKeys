@@ -1,11 +1,11 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trophy, Home, RotateCcw, Users, ArrowLeft } from 'lucide-react'
+import { Trophy, Home, Users, ArrowLeft } from 'lucide-react'
 import { useWebSocket } from '../contexts/WebSocketContext'
 
 function Results() {
   const navigate = useNavigate()
-  const { userProgress, users, roomSettings, words } = useWebSocket()
+  const { userProgress, users, roomSettings } = useWebSocket()
 
   // Calculate final rankings
   const finalRankings = Object.entries(userProgress)
@@ -49,11 +49,11 @@ function Results() {
         {/* Header */}
         <div className="relative mb-8">
           <button
-            onClick={() => navigate(-1)}
-            className="absolute left-0 top-0 flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            onClick={() => navigate('/room')}
+            className="cursor-pointer absolute left-0 top-0 flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            Back
+            Back to Rooms
           </button>
           
           <div className="text-center">
@@ -108,7 +108,7 @@ function Results() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={() => navigate('/leaderboard')}
-            className="flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors"
+            className="cursor-pointer flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors"
           >
             <Trophy className="w-5 h-5" />
             View Leaderboard
@@ -116,7 +116,7 @@ function Results() {
           
           <button
             onClick={() => navigate('/room')}
-            className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            className="cursor-pointer flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
           >
             <Users className="w-5 h-5" />
             New Race
@@ -124,7 +124,7 @@ function Results() {
           
           <button
             onClick={() => navigate('/')}
-            className="flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+            className="cursor-pointer flex items-center justify-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
           >
             <Home className="w-5 h-5" />
             Home

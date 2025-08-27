@@ -29,6 +29,11 @@ class ConnectionManager:
             await websocket.close(code=1008, reason="Room not found")
             return
 
+        # Check if race has already started
+        if room_data.get("race_started", False):
+            await websocket.close(code=1008, reason="Race already in progress")
+            return
+
         is_host = room_data.get("creator_id") == user_id
         
         # Add user to room in Redis
@@ -162,6 +167,10 @@ class ConnectionManager:
                 "accuracy": accuracy
             })
 
+    async def handle_notification(self, room_code: str, user_id: str, message: dict):
+        """Handle notification messages and broadcast them to all users in the room"""
+        await self.broadcast_to_room(room_code, message)
+
 manager = ConnectionManager()
 
 def verify_token(token: str, db):
@@ -224,6 +233,9 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str):
                 wpm = message.get("wpm", 0) 
                 accuracy = message.get("accuracy", 0)
                 await manager.handle_typing_progress(room_code, user_id, progress, wpm, accuracy)
+
+            elif message_type == "notification":
+                await manager.handle_notification(room_code, user_id, message)
     
     except WebSocketDisconnect:
         manager.disconnect(user_id)

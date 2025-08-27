@@ -6,13 +6,14 @@ import {
   sendTypingProgress,
   sendNotification as sendNotificationAPI,
 } from "../api/multiplayer.js";
+import { useNavigate } from "react-router-dom";
 
 const WebSocketContext = createContext(null);
 
 export const useWebSocket = () => useContext(WebSocketContext);
 
 export const WebSocketProvider = ({ roomCode, children }) => {
-
+    const navigate = useNavigate();
     const [chatMessages, setChatMessages] = useState([])
     const [users, setUsers] = useState([])
     const [roomSettings, setRoomSettings] = useState({})
@@ -23,6 +24,7 @@ export const WebSocketProvider = ({ roomCode, children }) => {
     const [words, setWords] = useState([])
     const [userProgress, setUserProgress] = useState({})
     const [raceStartTime, setRaceStartTime] = useState(null)
+    const [connectionError, setConnectionError] = useState(null)
 
     // WebSocket connection
     useEffect(() => {
@@ -82,12 +84,40 @@ export const WebSocketProvider = ({ roomCode, children }) => {
             },
             onOpen: () => {
                 console.log('Connected to room:', roomCode)
+                setConnectionError(null)
             },
             onClose: () => {
                 console.log('Disconnected from room:', roomCode)
+                setConnectionError('Connection closed')
             },
             onError: (error) => {
                 console.error('WebSocket error in room:', roomCode, error)
+                
+                // Handle specific error types
+                if (error.type === 'race_in_progress') {
+                    setConnectionError(error.message)
+                    // Navigate back to rooms page with error message
+                    setTimeout(() => {
+                        navigate('/room', { 
+                            state: { 
+                                error: 'This race has already started. You cannot join now.',
+                                errorType: 'race_in_progress'
+                            } 
+                        })
+                    }, 1000)
+                } else if (error.type === 'room_not_found') {
+                    setConnectionError(error.message)
+                    setTimeout(() => {
+                        navigate('/room', { 
+                            state: { 
+                                error: 'Room not found. It may have been deleted or expired.',
+                                errorType: 'room_not_found'
+                            } 
+                        })
+                    }, 1000)
+                } else {
+                    setConnectionError('Connection error occurred')
+                }
             }
         })
 
@@ -102,20 +132,24 @@ export const WebSocketProvider = ({ roomCode, children }) => {
     }, [roomCode, currentUserId])
 
     const sendMessage = (message) => {
+        if (connectionError) return
         sendChatMessage(wsRef.current, message)
     }
 
     const beginRace = useCallback(() => {
+        if (connectionError) return
         startRace(wsRef.current);
     }, []);
     
     const updateTypingProgress = useCallback(({ progress, wpm, accuracy }) => {
+        if (connectionError) return
         console.log('updateTypingProgress called with:', { progress, wpm, accuracy });
         console.log('WebSocket connection status:', wsRef.current?.isOpen());
         sendTypingProgress(wsRef.current, progress, wpm, accuracy);
     }, []);
 
     const sendNotification = useCallback((message) => {
+        if (connectionError) return
         sendNotificationAPI(wsRef.current, message);
     }, []);
 
@@ -133,7 +167,8 @@ export const WebSocketProvider = ({ roomCode, children }) => {
             beginRace,
             updateTypingProgress,
             sendNotification,
-            raceStartTime
+            raceStartTime,
+            connectionError
         }}>
             {children}
         </WebSocketContext.Provider>

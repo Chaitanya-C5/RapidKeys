@@ -21,3 +21,13 @@ export const COMMON_WORDS = [
   "school", "teacher", "student", "class", "test", "exam", "paper", "chalk", "board", "bell",
   "food", "bread", "rice", "milk", "cheese", "butter", "egg", "meat", "fish", "soup"
 ];
+
+export const calculateStats = (correctCharCount, incorrectCharCount, elapsedTime, currentWordIndex, words) => {
+  const totalChars = correctCharCount + incorrectCharCount
+  const accuracy = totalChars === 0 ? 100 : Math.round((correctCharCount / totalChars) * 100).toFixed(2)
+  const minutes = elapsedTime / 60
+  const wpm = minutes > 0 ? (correctCharCount / 5) / minutes : 0
+  const progress = Math.round((currentWordIndex / words.length) * 100)
+
+  return { wpm, accuracy, progress }
+}

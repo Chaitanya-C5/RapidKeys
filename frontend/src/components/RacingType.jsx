@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from "react"
-import { Hourglass, TypeOutline, RotateCcw, Activity, Target, ChartNoAxesCombined, Trophy } from "lucide-react"
+import { Hourglass, Activity, Target, ChartNoAxesCombined, Trophy } from "lucide-react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { COMMON_WORDS } from "../lib/utils"
 import { Tooltip as ShadcnTooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { useWebSocket } from "../contexts/WebSocketContext"
 import { useNavigate, useLocation } from "react-router-dom"
+import { calculateStats } from "../lib/utils"
+
 
 function RacingType({ text = [], givenMode = "words", givenWordCount = 10, givenTimeCount = 15 }) {
-  const [mode, setMode] = useState(givenMode)
-  const [wordCount, setWordCount] = useState(givenWordCount)
-  const [timeCount, setTimeCount] = useState(givenTimeCount)
+  const mode = givenMode
+  const wordCount = givenWordCount
+  const timeCount = givenTimeCount
   const { updateTypingProgress, raceStartTime, sendNotification } = useWebSocket()
   const navigate = useNavigate()
   const location = useLocation()
@@ -33,6 +34,7 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
   const [correctCharCount, setCorrectCharCount] = useState(0)
   const [incorrectCharCount, setIncorrectCharCount] = useState(0)
   const [testCompleted, setTestCompleted] = useState(false) 
+  const [finalWpm, setFinalWpm] = useState(null) 
 
   // Ref to track if this is initial word generation or appending
   const isAppendingWords = useRef(false)
@@ -64,21 +66,19 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
           const elapsed = (now - startTime) / 1000
           setElapsedTime(elapsed)
           
-          // Update chart data every second - no delay needed since race has started
-          const minutes = elapsed / 60
-          const currentWPM = minutes > 0 ? Math.round((correctCharCount / 5) / minutes) : 0
+          // Update chart data every second - no delay needed since race has started          
+          const { wpm: currentWPM, accuracy, progress } = calculateStats(
+            correctCharCount,
+            incorrectCharCount,
+            elapsed,
+            currentWordIndex,
+            words
+          )
           
           if (updateTypingProgress) {
-            updateTypingProgress({
-              wpm: currentWPM,
-              accuracy: Math.round((correctCharCount / (correctCharCount + incorrectCharCount)) * 100) || 100,
-              progress: Math.round((currentWordIndex / words.length) * 100),
-            })
-            
-            
-          } else {
-            console.log('updateTypingProgress function does not exist')
+            updateTypingProgress({ wpm: Math.round(currentWPM), accuracy, progress })
           }
+          
           
           setChartData(prev => {
             const timePoint = Math.floor(elapsed)
@@ -116,6 +116,22 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
           
           // Check if time is up in time mode
           if (mode === "time" && newElapsedTime >= timeCount) {
+            // Calculate final stats for completion
+            const { wpm: computedWpm, accuracy: finalAccuracy, progress } = calculateStats(
+              correctCharCount,
+              incorrectCharCount,
+              elapsedTime,
+              currentWordIndex,
+              words
+            )
+
+            setFinalWpm(Math.round(computedWpm))
+            
+            // Send final progress update
+            if (updateTypingProgress) {
+              updateTypingProgress({ wpm: Math.round(computedWpm), accuracy: finalAccuracy, progress })
+            }
+
             setTestCompleted(true)
           }
         }, 100)
@@ -135,20 +151,40 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
   // When time is up in time mode, freeze stats and input
   useEffect(() => {
     if (mode === "time" && elapsedTime >= timeCount && !testCompleted) {
+      // First stop the regular updates by setting completion
       setTestCompleted(true)
+      
+      // Then send final progress update with exact timing
+      setTimeout(() => {
+        // Use exact timeCount for final calculation to ensure consistency
+        const { wpm: computedWpm, accuracy: finalAccuracy, progress } = calculateStats(
+          correctCharCount,
+          incorrectCharCount,
+          elapsedTime,
+          currentWordIndex,
+          words
+        )
 
-      sendNotification({
-        type: 'race_completed',
-        data: {
-          mode,
-          finalWpm: wpm,
-          finalAccuracy: accuracy,
-          completionTime: elapsedTime,
-          wordsCompleted: currentWordIndex
+        setFinalWpm(Math.round(computedWpm))
+        
+        // Send final progress update
+        if (updateTypingProgress) {
+          updateTypingProgress({ wpm: Math.round(computedWpm), accuracy: finalAccuracy, progress })
         }
-      })
+
+        sendNotification({
+          type: 'race_completed',
+          data: {
+            mode,
+            finalWpm,
+            finalAccuracy,
+            completionTime: elapsedTime,
+            wordsCompleted: currentWordIndex
+          }
+        })
+      }, 50) // Small delay to ensure testCompleted state has updated
     }
-  }, [mode, elapsedTime, timeCount, testCompleted])
+  }, [mode, elapsedTime, timeCount, testCompleted, correctCharCount, incorrectCharCount, currentWordIndex, words.length, updateTypingProgress, sendNotification])
 
   // Keep supplying words in time mode
   useEffect(() => {
@@ -206,8 +242,10 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
     const { correct, incorrect } = calculateWordAccuracy(typedWord, currentWord)
     
     // Update stats
-    setCorrectCharCount(prev => prev + correct)
-    setIncorrectCharCount(prev => prev + incorrect)
+    const newCorrectCount = correctCharCount + correct
+    const newIncorrectCount = incorrectCharCount + incorrect
+    setCorrectCharCount(newCorrectCount)
+    setIncorrectCharCount(newIncorrectCount)
     
     // Save typed word to history
     setTypedHistory(prev => [...prev, typedWord])
@@ -217,7 +255,23 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
       const nextIdx = prev + 1
       // Check if test should complete
       if (mode === "words" && nextIdx >= words.length) {
+        // Calculate final stats for finishWord 
+        const { wpm: computedWpm, accuracy: finalAccuracy } = calculateStats(
+          newCorrectCount,
+          newIncorrectCount,
+          elapsedTime,
+          currentWordIndex + 1,
+          words
+        )
+        
+        if (updateTypingProgress) {
+          updateTypingProgress({ wpm: Math.round(computedWpm), accuracy: finalAccuracy, progress: 100 })
+        }
+        
+        setFinalWpm(Math.round(computedWpm))
+        
         setTestCompleted(true)
+        console.log(testCompleted)
       }
       return nextIdx
     })
@@ -266,11 +320,30 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
         ) {
           // Complete the test immediately without setTimeout to prevent race condition
           const { correct, incorrect } = calculateWordAccuracy(newValue, currentWord)
-          setCorrectCharCount(prev => prev + correct)
-          setIncorrectCharCount(prev => prev + incorrect)
+          const newCorrectCount = correctCharCount + correct
+          const newIncorrectCount = incorrectCharCount + incorrect
+          setCorrectCharCount(newCorrectCount)
+          setIncorrectCharCount(newIncorrectCount)
           setTypedHistory(prev => [...prev, newValue])
           setCurrentWordIndex(prev => prev + 1)
           setInputValue("")
+          
+          // Calculate final stats for completion
+          const { wpm: computedWpm, accuracy: finalAccuracy, progress } = calculateStats(
+            correctCharCount,
+            incorrectCharCount,
+            elapsedTime,
+            currentWordIndex,
+            words
+          )
+
+          setFinalWpm(Math.round(computedWpm))
+          
+          // Send final progress update with 100% completion
+          if (updateTypingProgress) {
+            updateTypingProgress({ wpm: Math.round(computedWpm), accuracy: finalAccuracy, progress: 100 })
+          }
+          
           setTestCompleted(true)
         }
       }
@@ -370,10 +443,14 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
   }
 
   // Calculate stats
-  const totalChars = correctCharCount + incorrectCharCount
-  const accuracy = totalChars === 0 ? 100 : ((correctCharCount / totalChars) * 100).toFixed(2)
-  const minutes = elapsedTime / 60
-  const wpm = minutes > 0 ? Math.round((correctCharCount / 5) / minutes) : 0
+  const { accuracy } = calculateStats(
+    correctCharCount,
+    incorrectCharCount,
+    elapsedTime,
+    currentWordIndex,
+    words
+  )
+
 
   // Real-time WPM chart data
   const [chartData, setChartData] = useState([])
@@ -381,8 +458,8 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
     {
       icon: <Activity className="w-8 h-8 text-blue-500" />,
       title: "WPM",
-      value: wpm,
-      tooltip: `${wpm} WPM`
+      value: finalWpm,
+      tooltip: `${finalWpm} WPM`
     },
     {
       icon: <Target className="w-8 h-8 text-green-500" />,
@@ -403,20 +480,6 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
       tooltip: `${Math.round(elapsedTime)} seconds`
     }
   ]
-
-  useEffect(() => {
-    if (testCompleted) {
-      sendNotification({
-        type: 'raceCompleted',
-        data: {
-          mode,
-          wpm,
-          accuracy,
-          elapsedTime,
-        },
-      })
-    }
-  }, [testCompleted, mode, wpm, accuracy, elapsedTime, sendNotification])
 
   return (
     <div className="w-full flex flex-col items-center">
@@ -502,17 +565,19 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
                       activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
                       connectNulls={false}
                     />
-                    <ReferenceLine 
-                      y={wpm}
-                      stroke="#FBBF24"
-                      strokeDasharray="4 4"
-                      label={{
-                        position: 'top',
-                        value: `WPM: ${wpm}`,
-                        fill: '#FBBF24',
-                        fontSize: 12
-                      }}
-                    />
+                    {finalWpm != null && (
+                      <ReferenceLine 
+                        y={finalWpm}
+                        stroke="#FBBF24"
+                        strokeDasharray="4 4"
+                        label={{
+                          position: 'top',
+                          value: `WPM: ${Math.round(finalWpm)}`,
+                          fill: '#FBBF24',
+                          fontSize: 12
+                        }}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -524,7 +589,7 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
                 {stats.map((stat, index) => (
                   <ShadcnTooltip key={index}>
                     <TooltipTrigger asChild>
-                      <div className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-6 cursor-help'>
+                      <div className='flex items-center bg-[#101010] rounded-lg py-4 px-6 text-center border border-gray-900 justify-start gap-6'>
                         {stat.icon}
                         <div className="flex flex-col items-center justify-center">
                           <div className="mb-1">
@@ -548,8 +613,8 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
           {/* Leaderboard Button */}
           <div className="flex justify-center mt-8">
             <button 
-              className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors"
-              onClick={() => navigate('/multiplayer/' + roomCode + '/results')}
+              className="cursor-pointer flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition-colors"
+              onClick={() => navigate('/multiplayer/' + roomCode + '/results', { replace: true })}
             >
               <Trophy className="w-5 h-5" />
               View Leaderboard
@@ -566,7 +631,7 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
       {!testCompleted && (
         <div className="flex gap-8 text-gray-400 text-md">
           <span>Time: {elapsedTime.toFixed(1)}s</span>
-          <span>WPM: {wpm}</span>
+          <span>WPM: {finalWpm}</span>
           <span>Accuracy: {accuracy}%</span>
         </div>
       )}

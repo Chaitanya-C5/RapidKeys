@@ -89,7 +89,29 @@ export const connectToRoom = (roomCode, { onMessage, onOpen, onClose, onError },
   };
 
   ws.onclose = (event) => {
-    console.log('WebSocket disconnected from room:', roomCode);
+    console.log('WebSocket disconnected from room:', roomCode, 'Code:', event.code, 'Reason:', event.reason);
+    
+    // Handle specific close codes
+    if (event.code === 1008) {
+      if (event.reason === "Race already in progress") {
+        console.warn('Cannot join room: Race already in progress');
+        onError?.({ type: 'race_in_progress', message: 'This race has already started. You cannot join now.' });
+        return;
+      } else if (event.reason === "Room not found") {
+        console.warn('Cannot join room: Room not found');
+        onError?.({ type: 'room_not_found', message: 'Room not found.' });
+        return;
+      } else if (event.reason === "Invalid token") {
+        console.warn('Cannot join room: Invalid token');
+        onError?.({ type: 'invalid_token', message: 'Invalid token.' });
+        return;
+      } else if (event.reason === "User already in room") {
+        console.warn('Cannot join room: User already in room');
+        onError?.({ type: 'user_already_in_room', message: 'You are already in this room.' });
+        return;
+      }
+    }
+    
     onClose?.(event);
   };
 
