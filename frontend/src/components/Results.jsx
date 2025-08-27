@@ -5,7 +5,7 @@ import { useWebSocket } from '../contexts/WebSocketContext'
 
 function Results() {
   const navigate = useNavigate()
-  const { userProgress, users, roomSettings } = useWebSocket()
+  const { userProgress, users, roomSettings, words } = useWebSocket()
 
   // Calculate final rankings
   const finalRankings = Object.entries(userProgress)
@@ -59,7 +59,7 @@ function Results() {
           <div className="text-center">
             <h1 className="text-4xl font-bold mb-2">🏁 Race Results</h1>
             <p className="text-gray-400">
-              {roomSettings.mode === 'time' ? `${roomSettings.duration}s` : `${roomSettings.wordCount} words`} • 
+              {roomSettings.mode === 'time' ? `${roomSettings.value}s` : `${roomSettings.value} words`} • 
               {roomSettings.mode} mode
             </p>
           </div>
@@ -153,7 +153,7 @@ function Results() {
             </div>
             <div>
               <p className="text-2xl font-bold text-orange-400">
-                {roomSettings.mode === 'time' ? `${roomSettings.duration}s` : `${roomSettings.wordCount}`}
+                {roomSettings.mode === 'time' ? `${roomSettings.value}s` : `${roomSettings.value}`}
               </p>
               <p className="text-sm text-gray-400">
                 {roomSettings.mode === 'time' ? 'Duration' : 'Words'}
