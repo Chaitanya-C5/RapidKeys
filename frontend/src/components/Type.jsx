@@ -376,6 +376,7 @@ function Type() {
   const accuracy = totalChars === 0 ? 100 : ((correctCharCount / totalChars) * 100).toFixed(2)
   const minutes = elapsedTime / 60
   const wpm = minutes > 0 ? Math.round((correctCharCount / 5) / minutes) : 0
+  const displayWpm = wpm
 
   // Real-time WPM chart data
   const [chartData, setChartData] = useState([])
@@ -560,17 +561,19 @@ function Type() {
                       activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
                       connectNulls={false}
                     />
-                    <ReferenceLine 
-                      y={wpm}
-                      stroke="#FBBF24"
-                      strokeDasharray="4 4"
-                      label={{
-                        position: 'top',
-                        value: `WPM: ${wpm}`,
-                        fill: '#FBBF24',
-                        fontSize: 12
-                      }}
-                    />
+                    {displayWpm > 0 && (
+                      <ReferenceLine 
+                        y={displayWpm}
+                        stroke="#FBBF24"
+                        strokeDasharray="4 4"
+                        label={{
+                          position: 'top',
+                          value: `WPM: ${displayWpm}`,
+                          fill: '#FBBF24',
+                          fontSize: 12
+                        }}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>

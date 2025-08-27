@@ -443,7 +443,7 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
   }
 
   // Calculate stats
-  const { accuracy } = calculateStats(
+  const { wpm: currentWpm, accuracy } = calculateStats(
     correctCharCount,
     incorrectCharCount,
     elapsedTime,
@@ -451,6 +451,8 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
     words
   )
 
+  // Use finalWpm if test is completed, otherwise use current WPM
+  const displayWpm = testCompleted ? finalWpm : Math.round(currentWpm)
 
   // Real-time WPM chart data
   const [chartData, setChartData] = useState([])
@@ -458,8 +460,8 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
     {
       icon: <Activity className="w-8 h-8 text-blue-500" />,
       title: "WPM",
-      value: finalWpm,
-      tooltip: `${finalWpm} WPM`
+      value: displayWpm,
+      tooltip: `${displayWpm} WPM`
     },
     {
       icon: <Target className="w-8 h-8 text-green-500" />,
@@ -565,14 +567,14 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
                       activeDot={{ r: 5, stroke: '#10B981', strokeWidth: 2, fill: '#10B981' }}
                       connectNulls={false}
                     />
-                    {finalWpm != null && (
+                    {displayWpm != null && (
                       <ReferenceLine 
-                        y={finalWpm}
+                        y={displayWpm}
                         stroke="#FBBF24"
                         strokeDasharray="4 4"
                         label={{
                           position: 'top',
-                          value: `WPM: ${Math.round(finalWpm)}`,
+                          value: `WPM: ${Math.round(displayWpm)}`,
                           fill: '#FBBF24',
                           fontSize: 12
                         }}
@@ -631,7 +633,7 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
       {!testCompleted && (
         <div className="flex gap-8 text-gray-400 text-md">
           <span>Time: {elapsedTime.toFixed(1)}s</span>
-          <span>WPM: {finalWpm}</span>
+          <span>WPM: {displayWpm}</span>
           <span>Accuracy: {accuracy}%</span>
         </div>
       )}
