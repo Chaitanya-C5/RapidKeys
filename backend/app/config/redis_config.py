@@ -116,10 +116,8 @@ class RedisManager:
             
             # Update the user data in the room
             await self.redis_client.hset(room_key, user_key, json.dumps(user_data))
-            print(f"Updated user {user_id} in room {room_code}: {user_data}")
             return True
         except Exception as e:
-            print(f"Error updating user in room: {e}")
             return False
 
     # Chat management
@@ -136,23 +134,16 @@ class RedisManager:
 
     async def update_user_progress(self, room_code: str, user_id: str, progress: int, wpm: int, accuracy: float) -> bool:
         """Update user's typing progress"""
-        print(f"update_user_progress called: room={room_code}, user={user_id}")
         room_data = await self.get_room(room_code)
-        print(f"Room data exists: {room_data is not None}")
         if room_data:
-            print(f"Users in room: {list(room_data.get('users', {}).keys())}")
-            print(f"User {user_id} in room: {user_id in room_data['users']}")
             if user_id in room_data["users"]:
                 room_data["users"][user_id]["progress"] = progress
                 room_data["users"][user_id]["wpm"] = wpm
                 room_data["users"][user_id]["accuracy"] = accuracy
                 result = await self.update_room(room_code, room_data)
-                print(f"update_room result: {result}")
                 return result
             else:
-                print(f"User {user_id} not found in room users")
-        else:
-            print(f"Room {room_code} not found")
+                return False
         return False
 
     async def update_user_ready_status(self, room_code: str, user_id: str, ready: bool) -> Optional[Dict[str, Any]]:

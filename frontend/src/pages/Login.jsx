@@ -70,7 +70,6 @@ function Login() {
 
   const handleForgotPassword = () => {
     // TODO: Implement forgot password
-    console.log('Forgot password clicked')
   }
 
   return (

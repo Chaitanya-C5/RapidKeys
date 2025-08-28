@@ -57,7 +57,6 @@ export const WebSocketProvider = ({ roomCode, children }) => {
                         break
                     }
                     case 'user_progress': {
-                        console.log("user_progress received:", data)
                         setUserProgress(prev => {
                             const updated = {
                                 ...prev,
@@ -67,7 +66,6 @@ export const WebSocketProvider = ({ roomCode, children }) => {
                                     accuracy: data.accuracy
                                 }
                             }
-                            console.log("Updated userProgress:", updated)
                             return updated
                         })
                         break
@@ -83,16 +81,12 @@ export const WebSocketProvider = ({ roomCode, children }) => {
                 }
             },
             onOpen: () => {
-                console.log('Connected to room:', roomCode)
                 setConnectionError(null)
             },
             onClose: () => {
-                console.log('Disconnected from room:', roomCode)
                 setConnectionError('Connection closed')
             },
-            onError: (error) => {
-                console.error('WebSocket error in room:', roomCode, error)
-                
+            onError: (error) => {                
                 // Handle specific error types
                 if (error.type === 'race_in_progress') {
                     setConnectionError(error.message)
@@ -143,8 +137,6 @@ export const WebSocketProvider = ({ roomCode, children }) => {
     
     const updateTypingProgress = useCallback(({ progress, wpm, accuracy }) => {
         if (connectionError) return
-        console.log('updateTypingProgress called with:', { progress, wpm, accuracy });
-        console.log('WebSocket connection status:', wsRef.current?.isOpen());
         sendTypingProgress(wsRef.current, progress, wpm, accuracy);
     }, []);
 

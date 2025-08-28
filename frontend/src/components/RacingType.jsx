@@ -271,7 +271,6 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
         setFinalWpm(Math.round(computedWpm))
         
         setTestCompleted(true)
-        console.log(testCompleted)
       }
       return nextIdx
     })

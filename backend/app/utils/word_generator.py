@@ -1,5 +1,3 @@
-# utils/word_generator.py
-
 import random
 
 # A small sample pool of words — replace or extend with your real dataset
@@ -33,8 +31,3 @@ def generate_words(mode: str, submode: int) -> list[str]:
 
     else:
         raise ValueError("Mode must be either 'words' or 'time'.")
-
-
-if __name__ == "__main__":
-    print("Words mode (25):", generate_words("words", 25))
-    print("Time mode (30):", generate_words("time", 30))

@@ -44,7 +44,6 @@ const Multiplayer = () => {
 
   const handleSendMessage = (e) => {
     e.preventDefault()
-    console.log('Sending message:', newMessage)
     if (!newMessage.trim()) return
     sendMessage(newMessage.trim())  // ✅ use context function
     setNewMessage('')

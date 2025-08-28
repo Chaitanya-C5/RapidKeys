@@ -75,7 +75,6 @@ export const connectToRoom = (roomCode, { onMessage, onOpen, onClose, onError },
   const ws = new WebSocket(wsUrl);
 
   ws.onopen = (event) => {
-    console.log('WebSocket connected to room:', roomCode);
     onOpen?.(event);
   };
 
@@ -89,7 +88,6 @@ export const connectToRoom = (roomCode, { onMessage, onOpen, onClose, onError },
   };
 
   ws.onclose = (event) => {
-    console.log('WebSocket disconnected from room:', roomCode, 'Code:', event.code, 'Reason:', event.reason);
     
     // Handle specific close codes
     if (event.code === 1008) {
@@ -151,20 +149,16 @@ export const startRace = (wsConnection) => {
 };
 
 export const sendTypingProgress = (wsConnection, progress, wpm, accuracy) => {
-  console.log('sendTypingProgress called:', { progress, wpm, accuracy });
-  console.log('wsConnection:', wsConnection);
   wsConnection?.send({
     type: "typing_progress",
     progress,
     wpm,
     accuracy
   });
-  console.log('Message sent to WebSocket');
 };
 
 export const sendNotification = (ws, message) => {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    console.log("Sending notification:", message);
     ws.send(JSON.stringify({
       type: "notification",
       ...message

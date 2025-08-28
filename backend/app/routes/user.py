@@ -217,5 +217,4 @@ def get_leaderboard(db: db_dependency, limit: int = 50):
             "total_users": len(leaderboard_data)
         }
     except Exception as e:
-        print(f"Leaderboard error: {e}")
         return {"success": False, "error": str(e)}

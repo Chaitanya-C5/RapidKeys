@@ -418,14 +418,6 @@ function Type() {
       }
       
       updateUserStats(statsData)
-        .then(response => {
-          if (response.success) {
-            console.log('Stats updated successfully:', response.stats)
-          }
-        })
-        .catch(error => {
-          console.error('Failed to update stats:', error)
-        })
     }
   }, [testCompleted, wpm, accuracy, mode, timeCount, wordCount])
 
