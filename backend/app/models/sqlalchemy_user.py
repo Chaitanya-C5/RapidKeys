@@ -16,3 +16,5 @@ class User(Base):
     average_wpm = Column(Float, nullable=True, default=0.0)
     average_accuracy = Column(Float, nullable=True, default=0.0)
     created_at = Column(DateTime, nullable=False, default=func.now())
+    reset_code = Column(String, nullable=True)
+    reset_code_expires = Column(DateTime, nullable=True)

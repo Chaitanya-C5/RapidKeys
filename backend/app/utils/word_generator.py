@@ -1,6 +1,5 @@
 import random
 
-# A small sample pool of words — replace or extend with your real dataset
 COMMON_WORDS = [
   "word", "buy", "too", "frighten", "some", "saw", "offer", "possible", "never", "chest",
   "quick", "brown", "fox", "jumps", "over", "lazy", "dog", "cat", "run", "fast",

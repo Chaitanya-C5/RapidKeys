@@ -36,3 +36,34 @@ export const getLeaderboard = async (limit = 50) => {
     throw error
   }
 }
+
+// FORGOT PASSWORD
+export const forgotPasswordRequest = async (email) => {
+  try {
+    const response = await axiosClient.post('/forgot-password', { email })
+    return response.data
+  } catch (error) {
+    console.error('Error requesting password reset:', error)
+    throw error
+  }
+}
+
+export const verifyResetCode = async (email, code) => {
+  try {
+    const response = await axiosClient.post('/verify-reset-code', { email, code })
+    return response.data
+  } catch (error) {
+    console.error('Error verifying reset code:', error)
+    throw error
+  }
+}
+
+export const resetPassword = async (email, code, new_password) => {
+  try {
+    const response = await axiosClient.post('/reset-password', { email, code, new_password })
+    return response.data
+  } catch (error) {
+    console.error('Error resetting password:', error)
+    throw error
+  }
+}

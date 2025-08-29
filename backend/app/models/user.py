@@ -52,3 +52,15 @@ class AuthResponse(BaseModel):
 class UsernameCheckResponse(BaseModel):
     available: bool
     message: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class VerifyResetCodeRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str

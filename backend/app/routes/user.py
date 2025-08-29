@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Body, Depends
-from app.models.user import UserCreate, UserLogin, UserStatsUpdate
+from app.models.user import UserCreate, UserLogin, UserStatsUpdate, ForgotPasswordRequest, VerifyResetCodeRequest, ResetPasswordRequest
 from app.models.sqlalchemy_user import User
 from app.utils.db_conn import db_dependency
 import os
@@ -10,8 +10,10 @@ import requests
 from sqlalchemy.orm import Session
 import jwt
 from app.utils.hasher import get_password_hash, verify_password
+from app.utils.email_service import generate_reset_code, send_reset_code_email, get_reset_code_expiry
 import os
-from fastapi.security import OAuth2PasswordBearer  
+from fastapi.security import OAuth2PasswordBearer
+from datetime import datetime, timedelta
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")  
 
@@ -188,6 +190,58 @@ def update_stats(db: db_dependency, stats: UserStatsUpdate = Body(...), token: s
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+@router.post("/forgot-password")
+def forgot_password(db: db_dependency, request: ForgotPasswordRequest = Body(...)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    reset_code = generate_reset_code()
+    user.reset_code = reset_code
+    user.reset_code_expires = datetime.utcnow() + get_reset_code_expiry()
+    db.commit()
+    
+    email_sent = send_reset_code_email(user.email, reset_code)
+    if not email_sent:
+        return {"success": False, "error": "Failed to send email"}
+    
+    return {"success": True, "message": "Reset code sent to your email"}
+
+@router.post("/verify-reset-code")
+def verify_reset_code(db: db_dependency, request: VerifyResetCodeRequest = Body(...)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    if not user.reset_code or user.reset_code != request.code:
+        return {"success": False, "error": "Invalid reset code"}
+    
+    from datetime import datetime, timezone
+    if not user.reset_code_expires or user.reset_code_expires < datetime.now(timezone.utc):
+        return {"success": False, "error": "Reset code has expired"}
+    
+    return {"success": True, "message": "Reset code verified"}
+
+@router.post("/reset-password")
+def reset_password(db: db_dependency, request: ResetPasswordRequest = Body(...)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        return {"success": False, "error": "User not found"}
+    
+    if not user.reset_code or user.reset_code != request.code:
+        return {"success": False, "error": "Invalid reset code"}
+    
+    from datetime import datetime, timezone
+    if not user.reset_code_expires or user.reset_code_expires < datetime.now(timezone.utc):
+        return {"success": False, "error": "Reset code has expired"}
+    
+    user.password = get_password_hash(request.new_password)
+    user.reset_code = None
+    user.reset_code_expires = None
+    db.commit()
+    
+    return {"success": True, "message": "Password reset successful"}
 
 @router.get("/leaderboard")
 def get_leaderboard(db: db_dependency, limit: int = 50):

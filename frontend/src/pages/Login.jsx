@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import ForgotPassword from '../components/ForgotPassword'
 
 function Login() {
   const navigate = useNavigate()
@@ -16,6 +17,20 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+
+  // If showing forgot password, render that component instead
+  if (showForgotPassword) {
+    return (
+      <ForgotPassword 
+        onBack={() => setShowForgotPassword(false)}
+        onSuccess={() => {
+          setShowForgotPassword(false)
+          // Optionally show a success message or auto-focus email field
+        }}
+      />
+    )
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -69,7 +84,7 @@ function Login() {
   }
 
   const handleForgotPassword = () => {
-    // TODO: Implement forgot password
+    setShowForgotPassword(true)
   }
 
   return (
@@ -161,7 +176,7 @@ function Login() {
             <button
               type="button"
               onClick={handleForgotPassword}
-              className="text-sm text-blue-400 hover:text-blue-300"
+              className="cursor-pointer text-sm text-blue-400 hover:text-blue-300"
             >
               Forgot password?
             </button>
