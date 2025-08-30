@@ -5,7 +5,7 @@ import jwt
 import os
 from typing import Dict, List, Set
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models.sqlalchemy_user import User
 from app.config.db import SessionLocal
 from app.config.redis_config import redis_manager
@@ -40,7 +40,7 @@ class ConnectionManager:
         user_data = {
             "id": user_id,
             "username": username,
-            "joined_at": datetime.now().isoformat(),
+            "joined_at": datetime.now(timezone.utc).isoformat(),
             "wpm": 0,
             "accuracy": 0,
             "progress": 0,
@@ -125,7 +125,7 @@ class ConnectionManager:
             "user_id": user_id,
             "username": username,
             "message": message,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         # Store message in Redis
@@ -148,7 +148,7 @@ class ConnectionManager:
         words = generate_words(mode, submode)
         await redis_manager.set_words(room_code, words)
         
-        start_time = datetime.now().isoformat()
+        start_time = datetime.now(timezone.utc).isoformat()
         await redis_manager.start_race(room_code, start_time)
         
         await self.broadcast_to_room(room_code, {
@@ -255,7 +255,7 @@ async def create_room(settings: dict, token: str = Depends(oauth2_scheme)):
         "users": {},
         "messages": [],
         "words": [],
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "race_started": False,
         "settings": {
             "mode": settings.get("mode", "time"),
