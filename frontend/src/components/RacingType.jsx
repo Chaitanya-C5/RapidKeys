@@ -60,17 +60,27 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
     useEffect(() => {
       let interval = null
       if (raceStartTime && !testCompleted) {
-        interval = setInterval(() => {
-          const startTime = new Date(raceStartTime).getTime()
+        // Ensure raceStartTime is a valid date
+        const startTime = new Date(raceStartTime).getTime()
+        if (isNaN(startTime)) {
+          console.error('Invalid race start time:', raceStartTime)
+          return
+        }
+        
+        // Initial time calculation
+        const updateElapsed = () => {
           const now = Date.now()
-          const elapsed = (now - startTime) / 1000
-          setElapsedTime(elapsed)
+          const elapsed = (now - startTime) / 1000 // Convert to seconds
           
-          // Update chart data every second - no delay needed since race has started          
+          // For time mode, don't let elapsed time exceed the race duration
+          const currentElapsed = mode === 'time' ? Math.min(elapsed, timeCount) : elapsed
+          
+          setElapsedTime(currentElapsed)
+          
           const { wpm: currentWPM, accuracy, progress } = calculateStats(
             correctCharCount,
             incorrectCharCount,
-            elapsed,
+            currentElapsed,
             currentWordIndex,
             words
           )
@@ -79,9 +89,8 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
             updateTypingProgress({ wpm: Math.round(currentWPM), accuracy, progress })
           }
           
-          
           setChartData(prev => {
-            const timePoint = Math.floor(elapsed)
+            const timePoint = Math.floor(currentElapsed)
             
             // Only add new data points, don't update existing ones
             const existingIndex = prev.findIndex(point => point.time === timePoint)
@@ -91,13 +100,25 @@ function RacingType({ text = [], givenMode = "words", givenWordCount = 10, given
             
             return prev
           })
-        }, 1000) // Update every second
-      } else {
-        clearInterval(interval)
+          
+          // Check if time is up in time mode
+          if (mode === 'time' && currentElapsed >= timeCount && !testCompleted) {
+            setTestCompleted(true)
+            clearInterval(interval)
+          }
+        }
+        
+        // Initial update
+        updateElapsed()
+        
+        // Set up interval for updates
+        interval = setInterval(updateElapsed, 1000)
       }
       
-      return () => clearInterval(interval)
-    }, [raceStartTime, testCompleted, correctCharCount, incorrectCharCount, currentWordIndex, words.length, updateTypingProgress])
+      return () => {
+        if (interval) clearInterval(interval)
+      }
+    }, [raceStartTime, testCompleted, correctCharCount, incorrectCharCount, currentWordIndex, words.length, updateTypingProgress, mode, timeCount])
 
 
   // Consolidated timer logic for both modes
