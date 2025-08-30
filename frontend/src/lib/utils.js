@@ -24,7 +24,7 @@ export const COMMON_WORDS = [
 
 export const calculateStats = (correctCharCount, incorrectCharCount, elapsedTime, currentWordIndex, words) => {
   const totalChars = correctCharCount + incorrectCharCount
-  const accuracy = totalChars === 0 ? 100 : Math.round((correctCharCount / totalChars) * 100).toFixed(2)
+  const accuracy = totalChars === 0 ? 100 : parseFloat(((correctCharCount / totalChars) * 100).toFixed(2))
   const minutes = elapsedTime / 60
   const wpm = minutes > 0 ? (correctCharCount / 5) / minutes : 0
   const progress = Math.round((currentWordIndex / words.length) * 100)
