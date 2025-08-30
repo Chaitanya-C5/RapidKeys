@@ -147,7 +147,9 @@ function Results() {
             </div>
             <div>
               <p className="text-2xl font-bold text-purple-400">
-                {Math.round(finalRankings.reduce((sum, u) => sum + u.accuracy, 0) / finalRankings.length)}%
+                {finalRankings.length > 0 
+                  ? Math.round(finalRankings.reduce((sum, u) => sum + parseFloat(u.accuracy || 0), 0) / finalRankings.length)
+                  : 0}%
               </p>
               <p className="text-sm text-gray-400">Avg Accuracy</p>
             </div>
