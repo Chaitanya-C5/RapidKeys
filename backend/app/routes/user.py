@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Body, Depends
-from app.models.user import UserCreate, UserLogin, UserStatsUpdate, ForgotPasswordRequest, VerifyResetCodeRequest, ResetPasswordRequest
+from app.models.user import UserCreate, UserLogin, UserStatsUpdate, ForgotPasswordRequest, UsernameCheck, VerifyResetCodeRequest, ResetPasswordRequest
 from app.models.sqlalchemy_user import User
 from app.utils.db_conn import db_dependency
 import os
@@ -91,7 +91,7 @@ def google_callback(db: db_dependency, code: str):
     user = db.query(User).filter(User.email == userinfo["email"]).first()
     if not user:
         user = User(
-            username=userinfo["given_name"],
+            username=None,
             email=userinfo["email"],
             auth_provider="google",
             password=""
@@ -270,5 +270,34 @@ def get_leaderboard(db: db_dependency, limit: int = 50):
             "leaderboard": leaderboard_data,
             "total_users": len(leaderboard_data)
         }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/check-username")
+def check_username(db: db_dependency, payload: UsernameCheck = Body(...)):
+    try:
+        user = db.query(User).filter(User.username.ilike(payload.username)).first()
+        return {"available": user is None}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/update-username")
+def update_username(db: db_dependency, request: UsernameCheck = Body(...), token: str = Depends(oauth2_scheme)):
+    try:
+        user = db.query(User).filter(User.username.ilike(request.username)).first()
+        if user:
+            return {"success": False, "error": "Username already exists"}
+        
+        payload = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])
+        user = db.query(User).filter(User.id == payload["sub"]).first()
+        
+        if not user:
+            return {"success": False, "error": "User not found"}
+        
+        print("User found:", user)
+        user.username = request.username
+        db.commit()
+        
+        return {"success": True, "message": "Username updated successfully"}
     except Exception as e:
         return {"success": False, "error": str(e)}

@@ -67,3 +67,24 @@ export const resetPassword = async (email, code, new_password) => {
     throw error
   }
 }
+
+export const checkUsername = async (username) => {
+  try {
+    const response = await axiosClient.post(`/check-username`, { username })
+    return response.data
+  } catch (error) {
+    console.error('Error checking username:', error)
+    throw error
+  }
+}
+
+export const updateUsername = async (token, username) => {
+  try { 
+    console.log("Updating username...", username)
+    const response = await axiosClient.post(`/update-username`, { username }, { headers: { Authorization: `Bearer ${token}` } })
+    return response.data
+  } catch (error) {
+    console.error('Error updating username:', error)
+    throw error
+  }
+}

@@ -16,6 +16,7 @@ import Race from "./components/Race";
 import Leaderboard from "./pages/Leaderboard";
 import Results from "./components/Results";
 import Profile from "./pages/Profile";
+import SetUsername from "./components/SetUsername";
 
 function WebSocketWrapper() {
   const { roomCode } = useParams();
@@ -54,6 +55,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/google-success" element={<GoogleSuccess />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/set-username" element={<SetUsername />} />
         </Routes>
       </Router>
     </AuthProvider>

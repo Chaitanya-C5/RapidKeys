@@ -191,7 +191,7 @@ function Login() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full custom-bgcolor text-white font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer w-full custom-bgcolor text-white font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Signing In...' : 'Sign In'}
           </Button>
@@ -203,7 +203,7 @@ function Login() {
             Don't have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="text-blue-400 hover:text-blue-300 font-semibold"
+              className="cursor-pointer text-blue-400 hover:text-blue-300 font-semibold"
             >
               Create account
             </button>
