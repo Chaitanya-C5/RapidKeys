@@ -2,7 +2,8 @@
 
 RapidKeys is a real-time multiplayer typing game where users can test and improve their typing speed and accuracy by competing with others in typing challenges. The application features user authentication, real-time multiplayer races, and performance tracking.
 
-<img width="1903" height="791" alt="image" src="https://github.com/user-attachments/assets/4a37a4c7-19a0-4423-95e6-23e6f99c0e16" />
+<img width="1871" height="822" alt="image" src="https://github.com/user-attachments/assets/6728cbb1-d6d9-4d36-bdf7-889cd4dfb278" />
+
 
 ## Live Demo
 
